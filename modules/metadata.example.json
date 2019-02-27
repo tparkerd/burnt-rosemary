@@ -1,0 +1,43 @@
+{
+    "user": "tparker",
+    "locations": [
+        {
+            "country": "United States",
+            "state": "New York",
+            "city": "",
+            "code": "NY"
+        },
+        {
+            "country": "United States",
+            "state": "Florida",
+            "city": "Clearwater",
+            "code": "FL"
+        }
+    ],
+    "species": [
+        {
+            "shortname": "soybean",
+            "binomial": "Glycine max",
+            "subspecies": "",
+            "variety": ""
+        }
+    ],
+    "traits": [
+        {}
+    ],
+    "growout_types": [
+        {}
+    ],
+    "gwas_algorithms": [
+        {}
+    ],
+    "imputation_methods": [
+        {}
+    ],
+    "kinship_algorithms": [
+        {}
+    ],
+    "population_structure_algorithms": [
+        {}
+    ]
+}

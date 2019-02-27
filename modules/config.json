@@ -1,0 +1,25 @@
+{
+  "species": {
+    "shortname": "maize",
+    "binomial name": "Zea mays"
+  },
+  "population": "b73",
+  "growout": [
+    {
+      "name": "pu02",
+      "year": "2002",
+      "type": "field",
+      "location": {
+        "code": "PU02"
+      }
+    },
+    {
+      "name": "FL06",
+      "year": "2006",
+      "type": "phenotyper",
+      "location": {
+        "code": "FL06"
+      }
+    }
+  ]
+}

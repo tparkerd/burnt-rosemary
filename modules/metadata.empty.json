@@ -1,0 +1,27 @@
+{
+    "user": "tparker",
+    "locations": [
+        {}
+    ],
+    "species": [
+        {}
+    ],
+    "traits": [
+        {}
+    ],
+    "growout_types": [
+        {}
+    ],
+    "gwas_algorithms": [
+        {}
+    ],
+    "imputation_methods": [
+        {}
+    ],
+    "kinship_algorithms": [
+        {}
+    ],
+    "population_structure_algorithms": [
+        {}
+    ]
+}
