@@ -1,45 +1,36 @@
 """This module helps connect to a PostgreSQL database"""
-from configparser import ConfigParser
+from dotenv import load_dotenv
 import psycopg2
 import sys
+import os
 
 # Use the parameters in database.ini to configure the database connection
-def config(filename='database.ini', section='postgresql'):
-  """Parses ini file 
+def config():
+  """Collect credentials for connecting to database using environment variables 
 
-    This function parsers out the PostgreSQL credentials from input .ini
+    This function parsers out the PostgreSQL credentials from environment
 
-    :param filename: input file
-    :type filename: str
-    :param section: section within .ini
-    :type j: str
     :return: database connection credentials
     :rtype: dict
     :raises: :exc:`FileNotFound`
 
-    :example .ini:
-      .. code-block:: ini
-
-        [postgresql]
+    :example .env:
+      .. code-block:: env
         database=database_name
         user=database_owner
         password=password
         host=localhost
         port=5432
   """
-  # create a parser
-  parser = ConfigParser()
-  # read config file
-  parser.read(filename)
-
+  load_dotenv()
   # get section, default to postgresql
   db = {}
-  if parser.has_section(section):
-    params = parser.items(section)
-    for param in params:
-      db[param[0]] = param[1]
-  else:
-    raise Exception('Section {0} not found in the {1} file'.format(section, filename))
+  required_sections = [ 'database', 'user', 'password', 'host', 'port' ]
+  for section in required_sections:
+    try:
+      db[section] = os.getenv(section)
+    except:
+      raise Exception(f"Section '{section}' not found. Please define it as an environment variable.")
 
   return db
 

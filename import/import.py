@@ -7,9 +7,9 @@ import sys
 import shutil
 import datetime
 import json
-import importutility as iu
-import find
-from dbconnect import connect
+import util.importutility as iu
+import util.find as find
+from util.dbconnect import connect
 
 from pprint import pprint
 
@@ -51,8 +51,6 @@ altering the generated JSON file.
   
 Press ^C at any time to quit.""")
 
-  # Work within the called directory
-  cwd = os.getcwd()
   # Initialize configuration and store in dictory
   # Directory will be converted to JSON object and saved as config.json
   config = {}
@@ -91,7 +89,7 @@ Press ^C at any time to quit.""")
       if stdin == 'n' or stdin == "no":
         print("Initialization aborted.")
         sys.exit(0)
-    print(f"About to write to {cwd}/{args.config}:\n")
+    print(f"About to write to {args.config}:\n")
     pprint(config)
     stdin = input(f"\nIs this okay? [Y/n]: ").lower() or "y"
     if stdin == 'n' or stdin == "no":
@@ -117,6 +115,9 @@ def design(args):
     raise
   
   conn = connect()
+
+  if args.debug:
+    pprint(conn)
 
   # Species & Poputation
   # Check if the species is already in the database
@@ -145,9 +146,6 @@ def design(args):
 
     # Else, code is not provided, so we need to continually request that it be
     # defined and then entered into the database
-
-
-
 
 
     while True:
@@ -186,21 +184,20 @@ def result(args):
 
 
 
-
-
 def parseOptions():
   """
   Function to parse user-provided options from terminal
   """
   description='Importation script that handles retrieving user-input for initializing data.'
   usage="python import.py -i ./data_file_directory [-o ./output_directory]"
+  default_config_location = os.path.join(os.getcwd(), 'config.json')
   parser = argparse.ArgumentParser(description=description, usage=usage)
-  parser.add_argument("-v", "--verbose", action="store_true", help="Increase output verbosity")
+  parser.add_argument("--verbose", action="store_true", help="Increase output verbosity")
   parser.add_argument("-o", "--outdir", default = f"output_{datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}", help="Path of output directory")
   parser.add_argument("--debug", action="store_true", help="Enables --verbose and disables writes to disk")
-  
+  parser.add_argument("-v", "--version", action="version", version='%(prog)s 1.0-alpha')
   parser.add_argument("-i", "--input_directory", default="config.json", help="Input directory of data files. See documentation on required file structure hierarchy.")
-  parser.add_argument("-c", "--config", default="config.json", help="JSON format file that contains metadata about the dataset to import.")
+  parser.add_argument("-c", "--config", default=default_config_location, help="JSON format file that contains metadata about the dataset to import.")
   parser.add_argument("--init", action="store_true", help="Scans directory for all files required to perform importation. Generates suggested JSON file used for importation")
   parser.add_argument("--design", action="store_true", help="Takes JSON file and validates if experiment can be imported")
   parser.add_argument("--collect", action="store_true", help="Gathers all the additional information in preperation for running GWAS on the data")
@@ -209,6 +206,9 @@ def parseOptions():
   if args.debug is True:
     args.verbose = True
     args.write = False
+
+  if args.debug:
+    pprint(args)
   
   return args
 

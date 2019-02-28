@@ -1,6 +1,6 @@
 import pandas as pd
 import csv
-import find
+import util.find as find
 
 def generate_chromosome_list(numChromosomes):
   """Generates list of chromosomes from numeric list of chromsomes

@@ -4,9 +4,9 @@
 import pandas as pd
 import numpy as np
 import time
-import parsinghelpers as ph
-import find
-from models import species, population, line, chromosome, variant, genotype, trait, phenotype, growout_type, growout, location, gwas_algorithm, genotype_version, imputation_method, kinship_algorithm, kinship, population_structure_algorithm, population_structure, gwas_run, gwas_result
+import util.parsinghelpers as ph
+import util.find as find
+from util.models import species, population, line, chromosome, variant, genotype, trait, phenotype, growout_type, growout, location, gwas_algorithm, genotype_version, imputation_method, kinship_algorithm, kinship, population_structure_algorithm, population_structure, gwas_run, gwas_result
 import psycopg2 as pg
 from tqdm import tqdm
 
