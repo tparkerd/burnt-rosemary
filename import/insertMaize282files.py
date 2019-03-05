@@ -6,10 +6,10 @@ import pandas as pd
 import numpy as np
 import psycopg2
 import csv
-import insert
-import find
-from dbconnect import config, connect
-from models import species, population, line, chromosome, variant, genotype, trait, phenotype, growout_type, growout, location, gwas_algorithm, genotype_version, imputation_method, kinship_algorithm, kinship, population_structure_algorithm, population_structure, gwas_run, gwas_result
+import util.insert as insert
+import util.find as find
+from util.dbconnect import config, connect
+from util.models import species, population, line, chromosome, variant, genotype, trait, phenotype, growout_type, growout, location, gwas_algorithm, genotype_version, imputation_method, kinship_algorithm, kinship, population_structure_algorithm, population_structure, gwas_run, gwas_result
 
 
 if __name__ == '__main__':
@@ -53,19 +53,6 @@ if __name__ == '__main__':
   print("[ INSERT ]\t(%s)\t%s" % (insertedPopulationID, str(myPopulation)))
   maize282popID = find.find_population(conn, 'Maize282')
   print("[ FIND ]\t(%s)\t%s" % (maize282popID, '< population: Maize282 >'))
-
-  # ADD A HARD-CODED LINE TO DB USING insert_line()
-  myLine = line(line_name='282set_B73', line_population=maize282popID)
-  insertedLineID = insert.insert_line(conn, myLine)
-  print("[ INSERT ]\t(%s)\t%s" % (insertedLineID, str(myLine)))
-  B73lineID = find.find_line(conn, '282set_B73', maize282popID)
-  print("[ FIND ]\t(%s)\t%s" % (B73lineID, '< line: Maize282 >'))
-
-  # ADD NEW HARD-CODED GENOTYPE_VERSION TO DB
-  myGenotypeVersion = genotype_version(genotype_version_name='B73 RefGen_v4_AGPv4_Maize282',
-                                       genotype_version=315, reference_genome=B73lineID, genotype_version_population=maize282popID)
-  B73_agpv4_maize282_versionID = insert.insert_genotype_version(conn, myGenotypeVersion)
-  print("[ INSERT ]\t(%s)\t%s" % (B73_agpv4_maize282_versionID, str(myGenotypeVersion)))
 
   # ADD ALL CHROMOSOMES FOR A SPECIES TO DB
   insertedChromosomeIDs = insert.insert_all_chromosomes_for_species(conn, 10, maizeSpeciesID)
@@ -219,6 +206,13 @@ if __name__ == '__main__':
   MLMMalgorithmID = find.find_gwas_algorithm(conn, "MLMM")
   print("MLMM algorithm ID:")
   print(MLMMalgorithmID)
+
+
+  # ADD NEW HARD-CODED GENOTYPE_VERSION TO DB
+  myGenotypeVersion = genotype_version(genotype_version_name='B73 RefGen_v4_AGPv4_Maize282',
+                                       genotype_version=315, reference_genome=B73lineID, genotype_version_population=maize282popID)
+  B73_agpv4_maize282_versionID = insert.insert_genotype_version(conn, myGenotypeVersion)
+  print("[ INSERT ]\t(%s)\t%s" % (B73_agpv4_maize282_versionID, str(myGenotypeVersion)))
 
   # LOOK UP ID OF A HARD-CODED GENOTYPE_VERSION
   B73_agpv4_maize282_versionID = find.find_genotype_version(conn, "B73 RefGen_v4_AGPv4_Maize282")

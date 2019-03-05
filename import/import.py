@@ -96,8 +96,9 @@ Press ^C at any time to quit.""")
       print("Initialization aborted.")
       sys.exit(0)
 
-    with open(args.config, 'w') as ofp:
-      json.dump(config, ofp, indent=2)
+    if not args.debug:
+      with open(args.config, 'w') as ofp:
+        json.dump(config, ofp, indent=2)
   except:
     raise
 
@@ -173,12 +174,22 @@ def design(args):
 
 # ================== Collection Stage ==================
 def collect(args):
-  """Collects additional information on experiment and how the GWAS will be executed"""
+  """Collects additional information on experiment and how the GWAS will be executed
+  
+  This handles importing the phenotypic data
+  
+  """
   pass
 
 
 # ================== Results Stage ==================
 def result(args):
+  """Collects the metadata and resultant dataset of a GWAS run
+
+  This handles collecting user input about a GWAS run and then associates it with
+  a result set and then imports it.
+  """
+
   pass
 
 

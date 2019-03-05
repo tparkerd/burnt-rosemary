@@ -16,7 +16,13 @@ port=5432
 ```
 
 ## Usage
-    python import.p
+Importing data into the GWAS database is split into four phases: initialization, gather, collection, and then results.
+
+### Initialization
+
+
+
+    python import.py 
 
 ## Running Tests
 

@@ -1,0 +1,81 @@
+{
+  "species": {
+    "shortname": "maize",
+    "binomial name": "Zea mays"
+  },
+  "population": "b73",
+  "growout": [
+    {
+      "name": "PU09",
+      "year": "2009",
+      "type": "field",
+      "location": {
+        "code": "PU09"
+      }
+    },
+    {
+      "name": "NY06",
+      "year": "2006",
+      "type": "field",
+      "location": {
+        "code": "NY06"
+      }
+    },
+    {
+      "name": "NY10",
+      "year": "2010",
+      "type": "field",
+      "location": {
+        "code": "NY10"
+      }
+    },
+    {
+      "name": "FL06",
+      "year": "2006",
+      "type": "field",
+      "location": {
+        "code": "FL06"
+      }
+    },
+    {
+      "name": "PR06",
+      "year": "2006",
+      "type": "field",
+      "location": {
+        "code": "PR06"
+      }
+    },
+    {
+      "name": "NC06",
+      "year": "2006",
+      "type": "field",
+      "location": {
+        "code": "NC06"
+      }
+    },
+    {
+      "name": "PU10",
+      "year": "2010",
+      "type": "field",
+      "location": {
+        "code": "PU10"
+      }
+    },
+    {
+      "name": "SA06",
+      "year": "2006",
+      "type": "field",
+      "location": {
+        "code": "SA06"
+      }
+    },
+    {
+      "name": "MO06",
+      "year": "2006",
+      "type": "field",
+      "location": {
+        "code": "MO06"
+      }
+    }
+  ]
+}

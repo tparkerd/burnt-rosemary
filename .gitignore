@@ -112,3 +112,8 @@ venv.bak/
 
 # Generated files
 config.json
+
+# Data
+*/data/*
+data/*
+data/
