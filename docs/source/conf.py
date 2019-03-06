@@ -43,6 +43,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
+    'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -178,6 +179,11 @@ epub_exclude_files = ['search.html']
 
 
 # -- Extension configuration -------------------------------------------------
+
+# Napoleon settings
+napoleon_google_docstring = True
+napoleon_use_param = True
+napoleon_use_rtype = True
 
 # -- Options for intersphinx extension ---------------------------------------
 

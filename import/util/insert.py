@@ -15,12 +15,12 @@ def insert_species(conn, species):
 
   This function inserts a species into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
-  :param species: :ref:`species <species_class>` object
-  :type species: species object
-  :return: species_id
-  :rtype: integer
+  Args:
+    conn (psyc): psycopg2 connection
+    species (species): :ref:`species <species_class>` object
+  
+  Returns:
+    int: species id
   """
   cur = conn.cursor()
   SQL = """INSERT INTO species (shortname, binomial, subspecies, variety)
@@ -44,8 +44,7 @@ def insert_population(conn, population):
 
   This function inserts a population into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param population: :ref:`population <population_class>` object
   :type population: population object
   :return: population_id
@@ -72,8 +71,7 @@ def insert_chromosome(conn, chromosome):
 
   This function inserts a chromosome into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param chromosome: :ref:`chromosome <chromosome_class>` object
   :type chromosome: chromosome object
   :return: chromosome_id
@@ -105,8 +103,7 @@ def insert_all_chromosomes_for_species(conn, numChromosomes, speciesID):
 
   This function inserts all chromosomes for a species into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param numChromosomes: upper-bound number of chromosomes to consider for a species
   :type numChromosomes: integer
   :param species: :ref:`species <species_class>` object
@@ -128,8 +125,7 @@ def insert_line(conn, line):
 
   This function inserts a line into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param line: :ref:`line <line_class>` object
   :type line: line object
   :return: line_id
@@ -157,8 +153,7 @@ def insert_lines_from_file(conn, lineFile, populationID):
 
   This function inserts a lines into a database from a file
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param lineFile: absolute path to input file
   :type lineFile: string
   :param populationID: :ref:`population <population_class>`
@@ -180,8 +175,7 @@ def insert_variant(conn, variant):
 
   This function inserts a variant into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param variant: :ref:`variant <variant_class>` object
   :type variant: variant object
   :return: variant_id
@@ -210,8 +204,7 @@ def insert_variants_from_file(conn, variantPosFile, speciesID, chromosomeID):
 
   This function inserts a chromosome into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param variantPosFile: absolute path to input file
   :type variantPosFile: string
   :param speciesID: :ref:`species <species_class>`
@@ -238,8 +231,7 @@ def insert_genotype(conn, genotype):
 
   This function inserts a genotype into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param genotype: :ref:`genotype <genotype_class>` object
   :type genotype: genotype object
   :return: genotype_id
@@ -264,8 +256,7 @@ def insert_genotypes_from_file(conn, genotypeFile, lineFile, chromosomeID, popul
 
   This function inserts a genotypes into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param genotypeFile: absolute path to input file
   :type genotypeFile: string
   :param lineFile: absolute path to input file
@@ -296,8 +287,7 @@ def insert_growout(conn, growout):
 
   This function inserts a growout into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param growout: :ref:`growout <genotype_class>` object
   :type growout: growout object
   :return: growout_id
@@ -328,8 +318,7 @@ def insert_location(conn, location):
 
   This function inserts a location into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param location: :ref:`location <location_class>` object
   :type location: location object
   :return: location_id
@@ -357,8 +346,7 @@ def insert_phenotype(conn, phenotype):
 
   This function inserts a phenotype into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param phenotype: :ref:`phenotype <phenotype_class>` object
   :type phenotype: phenotype object
   :return: phenotype_id
@@ -389,8 +377,7 @@ def insert_phenotypes_from_file(conn, phenotypeFile, populationID):
 
   This function inserts phenotypes from a file into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param phenotypeFile: absolute path to input file
   :type phenotypeFile: string
   :param populationID: :ref:`population_id <population_class>`
@@ -423,8 +410,7 @@ def insert_trait(conn, trait):
 
   This function inserts a trait into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param trait: :ref:`trait <trait_class>` object
   :type trait: trait object
   :return: trait_id
@@ -452,8 +438,7 @@ def insert_traits_from_traitlist(conn, traitlist):
 
   This function inserts a traitlist into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param traitlist: list of trait names
   :type traitlist: list of strings
   :return: list of trait IDs
@@ -472,8 +457,7 @@ def insert_growout_type(conn, growout_type):
 
   This function inserts a growout type into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param growout_type: :ref:`growout_type <growout_type_class>` object
   :type growout_type: growout_type object
   :return: growout_type_id
@@ -501,8 +485,7 @@ def insert_gwas_algorithm(conn, gwas_algorithm):
 
   This function inserts a GWAS algorithm into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param gwas_algorithm: :ref:`gwas_algorithm <gwas_algorithm_class>` object
   :type gwas_algorithm: gwas_algorithm object
   :return: gwas algorithm ID
@@ -530,8 +513,7 @@ def insert_genotype_version(conn, genotype_version):
 
   This function inserts a genotype version into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param genotype_version: :ref:`genotype_version <genotype_version_class>` object
   :type genotype_version: genotype_version object
   :return: genotype_version_id
@@ -560,8 +542,7 @@ def insert_imputation_method(conn, imputation_method):
 
   This function inserts a imputation method into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param imputation_method: :ref:`imputation_method <imputation_method_class>` object
   :type imputation_method: imputation_method object
   :return: imputation_method_id
@@ -589,8 +570,7 @@ def insert_kinship_algorithm(conn, kinship_algorithm):
 
   This function inserts a kinship_algorithm into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param kinship_algorithm: :ref:`kinship_algorithm <kinship_algorithm_class>` object
   :type kinship_algorithm: kinship_algorithm object
   :return: kinship_algorithm_id
@@ -618,8 +598,7 @@ def insert_kinship(conn, kinship):
 
   This function inserts a kinship into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param kinship: :ref:`kinship <kinship_class>` object
   :type kinship: kinship object
   :return: kinship_id
@@ -647,8 +626,7 @@ def insert_population_structure_algorithm(conn, population_structure_algorithm):
 
   This function inserts a population_structure_algorithm into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param population_structure_algorithm: :ref:`population_structure_algorithm <population_structure_algorithm_class>` object
   :type population_structure_algorithm: population_structure_algorithm object
   :return: population_structure_algorithm_id
@@ -676,8 +654,7 @@ def insert_population_structure(conn, population_structure):
 
   This function inserts a population into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param population: :ref:`population <population_class>` object
   :type population: population object
   :return: population_id
@@ -705,8 +682,7 @@ def insert_gwas_run(conn, gwas_run):
 
   This function inserts a gwas_run into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param gwas_run: :ref:`gwas_run <gwas_run_class>` object
   :type gwas_run: gwas_run object
   :return: gwas_run_id
@@ -735,26 +711,19 @@ def insert_gwas_runs_from_gwas_results_file(conn, gwas_results_file, gwasRunAlgo
 
   This function inserts a a collection of GWAS runs from an input file into a database
 
-  :param gwas_results_file: absolute path to input file
-  :type gwas_results_file: string
-  :param gwasRunAlgorithmID: :ref:`gwas_algorithm_id <gwas_algorithm_class>`
-  :type gwasRunAlgorithmID: integer
-  :param gwasRunGenotypeVersionID: :ref:`genotype_version_id <genotype_version_class>`
-  :type gwasRunGenotypeVersionID: integer
-  :param missing_snp_cutoff_value: 
-  :type missing_snp_cutoff_value: numeric
-  :param missing_line_cutoff_value:
-  :type missing_line_cutoff_value: numeric
-  :param minor_allele_frequency_cutoff_value:
-  :type minor_allele_frequency_cutoff_value: numeric
-  :param gwasRunImputationMethodID: :ref:`imputation_method_id <imputation_method_class>`
-  :type gwasRunImputationMethodID: integer
-  :param gwasRunKinshipID: :ref:`kinship_id <kinship_class>`
-  :type gwasRunKinshipID: integer
-  :param gwasRunPopulationStructureID: :ref:`population_structure_id <population_structure_class>`
-  :type gwasRunPopulationStructureID: integer
-  :return: list of gwas_run_id
-  :rtype: list of integers
+  Args:
+    conn (psycopg2.connection): connection to database
+    gwas_results_file (str): absolute path to input file
+    gwasRunAlgorithmID (int): :ref:`gwas_algorithm_id <gwas_algorithm_class>`
+    gwasRunGenotypeVersionID (int): :ref:`genotype_version_id <genotype_version_class>`
+    missing_snp_cutoff_value (numeric): 
+    missing_line_cutoff_value (numeric):
+    minor_allele_frequency_cutoff_value (numeric):
+    gwasRunImputationMethodID (int): :ref:`imputation_method_id <imputation_method_class>`
+    gwasRunKinshipID (int): :ref:`kinship_id <kinship_class>`
+    gwasRunPopulationStructureID (int): :ref:`population_structure_id <population_structure_class>`
+  Returns:
+    list of int: GWAS Run IDs
   """
   gwas_run_list = ph.parse_unique_runs_from_gwas_results_file(gwas_results_file)
   insertedGwasRunIDs = []
@@ -771,8 +740,7 @@ def insert_gwas_result(conn, gwas_result):
 
   This function inserts a gwas_result into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  conn (psycopg2.connection): connection to database
   :param gwas_result: :ref:`gwas_result <gwas_result_class>` object
   :type gwas_result: gwas_result object
   :return: gwas_result_id
@@ -800,31 +768,21 @@ def insert_gwas_results_from_file(conn, speciesID, gwas_results_file, gwas_algor
 
   This function inserts a collection of GWAS results from a file into a database
 
-  :param conn: psycopg2 connection
-  :type conn: connection object
+  Args:
+    conn (psycopg2.connection): connection to database
+    speciesID (int): :ref:`species_id <species_class>`
+    gwas_results_file (str): absolute path to input file
+    gwas_algorithm_ID (int): :ref:`gwas_algorithm_id <gwas_algorithm_class>`
+    missing_snp_cutoff_value (numeric):
+    missing_line_cutoff_value (numeric):
+    imputationMethodID (int): :ref:`imputation_method_id <imputation_method_class>`
+    genotypeVersionID (int): :ref:`genotype_version_id <genotype_version_class>`
+    kinshipID (int): :ref:`kinship_id <kinship_class>`
+    populationStructureID (int): :ref:`population_structure_id <population_structure_class>`
+    minor_allele_frequency_cutoff_value (numeric):
 
-  :param speciesID: :ref:`species_id <species_class>`
-  :type speciesID: integer
-  :param gwas_results_file: absolute path to input file
-  :type gwas_results_file: string
-  :param gwas_algorithm_ID: :ref:`gwas_algorithm_id <gwas_algorithm_class>`
-  :type gwas_algorithm_ID: integer
-  :param missing_snp_cutoff_value:
-  :type missing_snp_cutoff_value: numeric
-  :param missing_line_cutoff_value:
-  :type missing_line_cutoff_value: numeric
-  :param imputationMethodID: :ref:`imputation_method_id <imputation_method_class>`
-  :type imputationMethodID: integer
-  :param genotypeVersionID: :ref:`genotype_version_id <genotype_version_class>`
-  :type genotypeVersionID: integer
-  :param kinshipID: :ref:`kinship_id <kinship_class>`
-  :type kinshipID: integer
-  :param populationStructureID: :ref:`population_structure_id <population_structure_class>`
-  :type populationStructureID: integer
-  :param minor_allele_frequency_cutoff_value:
-  :type minor_allele_frequency_cutoff_value: numeric
-  :return: list of gwas_result_id
-  :rtype: list of integers
+  Returns:
+    list of int: GWAS Result IDs
   """
   new_gwas_result_IDs = []
   df = pd.read_csv(gwas_results_file)
