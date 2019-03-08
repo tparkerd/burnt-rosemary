@@ -1,38 +1,101 @@
 #!/usr/bin/env python
 """Hard-coded importation script for Setaria Diverity Panel dataset.
-The goal of this is to just get the data into the database and have a better grasp on how to generalize this
+The goal of this is to just get the data into the database and have a better grasp on how
+to generalize importation given a strict file structure.
 
 The MLMM GWAS Pipeline (by Greg Ziegler) is the source for the majority of information.
 
-.. GitHub: https://github.com/gziegler/SetariaGWASPipeline
+GitHub: https://github.com/gziegler/SetariaGWASPipeline
+
+Importation happens in five stages:
+    Experiment Design          Pipeline Design
+            |                         |
+            |                         |
+            V                         V
+  Experiment Collection       Pipeline Collection
+                   \             /
+                    \           /
+                     \         /
+                      V       V
+                       Results
+  
+  Although the experiment and pipeline pathways are not dependent on one another, they must
+  both done before importing *any* GWAS results.
 
 Curated Values & Files:
-  The following values were confirmed by Greg to be accurate and correct to define the Setaria dataset.
-  * Species shortname:
-  * Species binomial name:
-  * Species subspecies:
-  * Species variety:
-  * Population name:
-  * Number of chromosome:
-  * Lines filename (.indv): 
-  * Genotype version name:
-  * Genotype version: 
-  * Reference genome line (line name):
-  * Phenotype filename(s):
+  The following values must be known. The listed files are the best guesses. Any value marked with ⚠ is not yet confirmed. 
+    * Species shortname
+    * Species binomial name
+    * Species subspecies
+    * Species variety
+    * Population name
+    * Number of chromosome
+    * Lines filename (.indv): <chromosome>_setaria.012.indv
+    * Genotype version assembly name
+    * Genotype version annotation name 
+    * Reference genome line name (line name)
+    * Phenotype filename(s): 2.Setaria_IR_2016_datsetset_GWAS.BLUPsandBLUEs.csv ⚠⚠⚠ (But I will make a new format >>> .ph.csv)
+    * GWAS algorithm name: MLMM (According to GitHub)
+    * Imputation method name
+    * Kinship algortihm name
+    * Population structure algorithm name
+    * Genotype filename(s) (.012): <chromosome>.012
+    * Variants filenames (.012.pos): <chromosome>.012.pos
+    * Kinship filename (.csv): 6.AstleBalding.synbreed.kinship.csv ⚠
+    * Population structure filename (.csv): 6.Eigenstrat.population.structure.50PCs.csv ⚠
+    * GWAS run filename (.csv): ⚠
+    * GWAS results filename (.csv): ⚠
+    * Missing SNP cutoff value
+    * Missing line cutoff value
+    * Minor allele frequency cutoff value
 
+  Required values & files categorized by stage:
+    Experiment Design:
+      * Species shortname
+      * Species binomial name
+      * Species subspecies
+      * Species variety
+      * Population name
+      * Number of chromosome
+      * Lines filename (.indv) 
+      * Genotype version assembly name
+      * Genotype version annotation name 
+      * Reference genome line name (line name)
+      * Phenotype filename(s)
+    Pipeline Design:
+      * GWAS algorithm name
+      * Imputation method name
+      * Kinship algortihm name
+      * Population structure algorithm name
+    Experiment Collection:
+      * Genotype filename(s) (.012)
+      * Variants filenames (.012.pos)
+      * Phenotype filename(s) ⚠
+    Pipeline Collection:
+      * Kinship filename (.csv)
+      * Population structure filename (.csv)
+    Results:
+      * GWAS run filename (.csv)
+      * GWAS results filename (.csv)
+      * Missing SNP cutoff value
+      * Missing line cutoff value
+      * Minor allele frequency cutoff value
 
 Todo:
   * Move the lines to a separate, *single* file because right now there are duplicates 
     of each said file for *each* chromosome.
   * Split the phenotypes/traits into individual files with `.ph` file extension
+  * Change genotype_version table so that fields reflect the change from 
 
 """
 import argparse
+import configparser
 import csv
+import os
 import sys
-from string import Template
-from random import randint
 from pprint import pprint
+from random import randint
+from string import Template
 
 import numpy as np
 import pandas as pd
@@ -46,6 +109,8 @@ from util.models import (chromosome, genotype, genotype_version, growout,
                          location, phenotype, population, population_structure,
                          population_structure_algorithm, species, trait,
                          variant)
+
+import importation.importSetaria
 def process(args):
   """Workhorse function"""
   # =======================================
@@ -84,13 +149,13 @@ def process(args):
   # Chromosome
   chromosome_count = 9 # As defined by `awk -F'\t' '!a[$1]++{print NR":"$0}' 2.from12.setaria.maf0.1.maxMissing0.1.allLines.012.pos`
   # Line
-  lines_filename = Template('../data/setaria/data/$chromosome_setaria.012.indv') # NOTE(tparker): Can use any chromosome, as they are the same for each. In the future, this the extraneous copies of the lines may be removed and there will be one specific line file, much like the phenotype files
+  lines_filename = Template(f'{args.working_directory}/$chromosome_setaria.012.indv') # NOTE(tparker): Can use any chromosome, as they are the same for each. In the future, this the extraneous copies of the lines may be removed and there will be one specific line file, much like the phenotype files
   # Genotype Version
   # NOTE(tparker): This is possibly just the info about the reference genome
   #             It is likely included with the VCF genotype file (.012).
-  genotype_version_name = 'SetariaGenotypeVersionName'
-  genotype_version_identifier = 'SetariaGenotypeVersion' # NOTE(tparker): Not sure where to find this info or who names it
-  line_name = 'SetariaReferenceGenomeLineName'
+  genotype_version_assembly_name = 'SetariaGenotypeVersionAssemblyName'
+  genotype_version_annotation_name = 'SetariaAnotationVersionName' # NOTE(tparker): Not sure where to find this info or who names it
+  reference_genome_line_name = 'SetariaReferenceGenomeLineName'
   # Growout, Type, and Location
   # NOTE(tparker): Unknown at this time
   ## Location
@@ -98,7 +163,7 @@ def process(args):
   ## Growout
   #
   # Traits
-  phenotype_filename = Template('../data/setaria/$chromosome.ph.csv')
+  phenotype_filename = Template(f'{args.working_directory}/$chromosome.ph.csv')
 
   # Model Construction & Insertion
   if not args.debug:
@@ -111,16 +176,22 @@ def process(args):
     # Chromosome
     chromosome_ids = insert.insert_all_chromosomes_for_species(conn, chromosome_count, species_id)
     # Line
-    line_ids = insert.insert_lines_from_file(conn, lines_filename.safe_substitute('chr1'), population_id) # hard-coded substitue until just one file is used for lines
-    # Genotype Version
-    reference_genome_id = None # TODO(tparker): Look up line_id given reference genome (Not sure how this is selected), but it's found by its population_id (known) and a line_name
-    line_id = find.find_line(conn, line_name, population_id) # NOTE(tparker): Need input from Greg on if this is the reference genome represented by a line
-    gv = genotype_version(genotype_version_name,
-                          genotype_version_identifier,
-                          reference_genome = line_id,
-                          genotype_version_population = population_id)
-    genotype_version_id = insert.insert_genotype_version(conn, gv)
-
+    # DEBUG
+    try:
+      if not os.path.isfile(lines_filename.safe_substitute(dict(chromosome="chr1"))):
+        raise FileNotFoundError
+    except:
+      raise
+    else:
+      line_ids = insert.insert_lines_from_file(conn, lines_filename.safe_substitute(dict(chromosome="chr1")), population_id) # hard-coded substitue until just one file is used for lines
+      # Genotype Version
+      reference_genome_id = None # TODO(tparker): Look up line_id given reference genome (Not sure how this is selected), but it's found by its population_id (known) and a reference_genome_line_name
+      line_id = find.find_line(conn, reference_genome_line_name, population_id) # NOTE(tparker): Need input from Greg on if this is the reference genome represented by a line
+      gv = genotype_version(genotype_version_assembly_name,
+                            genotype_version_annotation_name,
+                            reference_genome = line_id,
+                            genotype_version_population = population_id)
+      genotype_version_id = insert.insert_genotype_version(conn, gv)
     # Growout, Type, and Location
     # NOTE(tparker): Unknown at this time
     ## Location
@@ -153,15 +224,14 @@ def process(args):
     print(f'insert_all_chromosomes_for_species(conn, {chromosome_count}, {species_id})')
     # Line
     print('\n------------------------\nLines (from file)\n------------------------')
-    shortname_dict = dict(chromosome='chr1')
-    print(f'insert_lines_from_file(conn, {lines_filename.safe_substitute(shortname_dict)}, {population_id})')
+    print(f'insert_lines_from_file(conn, {lines_filename.safe_substitute(dict(chromosome="chr1"))}, {population_id})')
     # Genotype Version
     reference_genome_id = None
     line_id = randint(1, 1000)
     print('\n------------------------\nLine ID (Reference Genome)\n------------------------')
     print(f'Line ID set to {line_id}')
-    gv = genotype_version(genotype_version_name,
-                          genotype_version_identifier,
+    gv = genotype_version(genotype_version_assembly_name,
+                          genotype_version_annotation_name,
                           reference_genome = line_id,
                           genotype_version_population = population_id)
     print('\n------------------------\nGenotype Version\n------------------------')
@@ -226,7 +296,7 @@ def process(args):
     gwas_algorithm_id = randint(1, 1000)
     print(f'GWAS Algorithm ID set to {gwas_algorithm_id}')
     # Imputation Method
-    print('\n------------------------\Imputation Method\n------------------------')
+    print('\n------------------------\nImputation Method\n------------------------')
     print(f'insert.insert_imputation_method(conn, {imputation_method_name})')
     imputation_method_id = randint(1, 1000)
     print(f'Imputation method ID set to {imputation_method_id}')
@@ -255,9 +325,9 @@ def process(args):
   # Phenotype
   # NOTE(tparker): Define in earlier stage
   # Genotype
-  genotype_filename = Template('../data/setaria/$chromosome_shortname.012')
+  genotype_filename = Template(f'{args.working_directory}/$chromosome_shortname.012')
   # Variants
-  variants_filename = Template('../data/setaria/$chromosome_shortname.012.pos')
+  variants_filename = Template(f'{args.working_directory}/$chromosome_shortname.012.pos')
 
   if not args.debug:
     # Model Construction & Insertion
@@ -331,11 +401,11 @@ def process(args):
   #                I would like to find out why this is the case and if 
   #                it would just be better to store it in the database and
   #                allow the user to export the table themselves as a CSV.
-  kinship_filepath = '6.AstleBalding.synbreed.kinship.csv'
+  kinship_filepath = f'{args.working_directory}/6.AstleBalding.synbreed.kinship.csv'
   # Population Structure
   # NOTE(tparker): Same reasoning as the kinship file. There should be a way 
   #                for the data to be stored in the database, not a 
-  population_structure_filepath = '4.Eigenstrat.population.structure.10PCs.csv'
+  population_structure_filepath = f'{args.working_directory}/6.Eigenstrat.population.structure.50PCs.csv'
 
   if not args.debug:
     # Model Construction & Insertion
@@ -356,10 +426,16 @@ def process(args):
     kinship_id = randint(1, 1000)
     # Population Structure
     print('\n------------------------\nPopulation Structure Algorithm\n------------------------')
-    ps = population_structure(population_structure_algorithm_id, population_structure_filepath)
-    print(f'insert.insert_population_structure(conn, {ps})')
-    population_structure_id = randint(1, 1000)
-    print(f'Population structure ID set to {population_structure_id}')
+    try:
+      if not os.path.isfile(population_structure_filepath):
+        raise FileNotFoundError
+    except:
+      raise
+    else:
+      ps = population_structure(population_structure_algorithm_id, population_structure_filepath)
+      print(f'insert.insert_population_structure(conn, {ps})')
+      population_structure_id = randint(1, 1000)
+      print(f'Population structure ID set to {population_structure_id}')
 
 
   # =============================================
@@ -369,8 +445,8 @@ def process(args):
   # GWAS Results
 
   # Expected User Input
-  # GWAS Run
-  gwas_run_filename = '../data/9.mlmmResults.csv'
+  # GWAS Run & results
+  gwas_filename = f'{args.working_directory}/placeholder_gwas_results.csv'
   # The following values (0.2, 0.2, and 0.1) were all taken from the Maize282 import
   # NOTE(tparker): Make sure to double check with Greg on what the true values should be
   #                Also, double check the source of the pipeline to see if there is any
@@ -378,25 +454,15 @@ def process(args):
   missing_snp_cutoff_value = 0.2
   missing_line_cutoff_value = 0.2
   minor_allele_frequency_cutoff_value = 0.1
-  # GWAS Results
-    # The following values (0.2, 0.2, and 0.1) were all taken from the Maize282 import
-  # NOTE(tparker): Make sure to double check with Greg on what the true values should be
-  #                Also, double check the source of the pipeline to see if there is any
-  #                indication what the values shoudl be.
-  gwas_results_filename = '../data/9.mlmmResults.csv'
-  missing_snp_cutoff_value = 0.2
-  missing_line_cutoff_value = 0.2
-  minor_allele_frequency_cutoff_value = 0.1
-
 
   if not args.debug:
     # Model Construction & Insertion
     # GWAS Run
     # NOTE(tparker): Check with Greg on what the imputation method was used. I believe it was
     #                set by someone named Sujan because imputation was done beforehand
-    imputation_method_id = find.find_imputation_method(conn, "impute to major allele")
+    imputation_method_id = find.find_imputation_method(conn, imputation_method_name)
     gwas_run_ids = insert.insert_gwas_runs_from_gwas_results_file(conn,
-                                                                        gwas_run_filename,
+                                                                        gwas_filename,
                                                                         gwas_algorithm_id,
                                                                         reference_genome_id,
                                                                         missing_snp_cutoff_value,
@@ -408,7 +474,7 @@ def process(args):
     # GWAS Results
     gwas_result_ids = insert.insert_gwas_results_from_file(conn,
                                                                 species_id,
-                                                                gwas_results_filename,
+                                                                gwas_filename,
                                                                 gwas_algorithm_id,
                                                                 missing_snp_cutoff_value,
                                                                 missing_line_cutoff_value,
@@ -429,25 +495,68 @@ def process(args):
     # time, then it will have to be searched for in the database.
     print(f'Imputation method ID set to {imputation_method_id}')
     print('\n------------------------\nGWAS Run\n------------------------')
-    print(f'insert.insert_gwas_runs_from_gwas_results_file(conn, {gwas_run_filename}, {gwas_algorithm_id}, {reference_genome_id}, {missing_snp_cutoff_value}, {missing_line_cutoff_value}, {minor_allele_frequency_cutoff_value}, {imputation_method_id}, {kinship_id}, {population_structure_id})')
-    gwas_run_ids = [ randint(1, 1000) for g in range(1,15) ]
-    print(f'GWAS run IDs set to {gwas_run_ids}')
-    # GWAS Results
-    print('\n------------------------\nGWAS Result\n------------------------')
-    print(f'insert.insert_gwas_results_from_file(conn,{species_id},{gwas_results_filename},{gwas_algorithm_id},{missing_snp_cutoff_value},{missing_line_cutoff_value},{imputation_method_id},{reference_genome_id},{kinship_id},{population_structure_id},{minor_allele_frequency_cutoff_value})')
-    gwas_result_ids = [ randint(1, 1000) for g in range(1,15) ]
-    print(f'GWAS result IDs set to {gwas_result_ids}')
+    try:
+      if not os.path.isfile(gwas_filename):
+        raise FileNotFoundError
+    except:
+      raise
+    else:
+      print(f'insert.insert_gwas_runs_from_gwas_results_file(conn, {gwas_filename}, {gwas_algorithm_id}, {reference_genome_id}, {missing_snp_cutoff_value}, {missing_line_cutoff_value}, {minor_allele_frequency_cutoff_value}, {imputation_method_id}, {kinship_id}, {population_structure_id})')
+      gwas_run_ids = [ randint(1, 1000) for g in range(1,15) ]
+      print(f'GWAS run IDs set to {gwas_run_ids}')
+      # GWAS Results
+      print('\n------------------------\nGWAS Result\n------------------------')
+      print(f'insert.insert_gwas_results_from_file(conn,{species_id},{gwas_filename},{gwas_algorithm_id},{missing_snp_cutoff_value},{missing_line_cutoff_value},{imputation_method_id},{reference_genome_id},{kinship_id},{population_structure_id},{minor_allele_frequency_cutoff_value})')
+      gwas_result_ids = [ randint(1, 1000) for g in range(1,15) ]
+      print(f'GWAS result IDs set to {gwas_result_ids}')
 
 def parseOptions():
   """
   Function to parse user-provided options from terminal
   """
-  description='Importation script specificaly for Setaria dataset.'
-  # usage="python import.py -i ./data_file_directory [-o ./output_directory]"
-  parser = argparse.ArgumentParser(description=description)
+  description="""Importation script specificaly for Setaria dataset.
+  
+  Importation happens in five stages:
+    Experiment Design          Pipeline Design
+            |                         |
+            |                         |
+            V                         V
+  Experiment Collection       Pipeline Collection
+                   \             /
+                    \           /
+                     \         /
+                      V       V
+                       Results
+
+  Example configuration file:
+    # configuration.json
+    {
+      "species": {
+        "shortname": "setaria",
+        "binomial name": "Setaria Dkss"
+      },
+      "population": "wg393",
+      "growout": [
+        {
+          "name": "PH18",
+          "year": "2018",
+          "type": "phenotyper",
+          "location": {
+            "code": "PH18"
+          }
+        }
+      ]
+    }
+    
+    """
+  parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("--verbose", action="store_true", help="Increase output verbosity")
   parser.add_argument("--debug", action="store_true", help="Enables --verbose and disables writes to disk")
   parser.add_argument("-v", "--version", action="version", version='%(prog)s 1.0-alpha')
+  parser.add_argument("-f", "--filename", action="store", help="Specify a configuration file. See documentation for expected format.")
+  parser.add_argument("--log", action="store_true", help="Enabled logging. Filename is appended to %(prog)s.log")
+  parser.add_argument("working_directory", action="store", metavar="WORKING_DIRECTORY", default=".", help="Working directory. Must contains all required files.")
+  print(f'{os.path.basename(__file__)}') # this was just a quick test to see how to get the filename of the script. I don't know why I needed it.
   args = parser.parse_args()
   if args.debug is True:
     args.verbose = True
