@@ -29,8 +29,8 @@ Curated Values & Files:
     * Species subspecies
     * Species variety
     * Population name
-    * Number of chromosome
-    * Lines filename (.indv): <chromosome>_setaria.012.indv
+    * Number of chromosomes
+    * Lines filename (.indv): <chromosome>_setaria.012.indv (9.StomatalDensity.phenotypes.csv has TRUE names)
     * Genotype version assembly name
     * Genotype version annotation name 
     * Reference genome line name (line name)
@@ -43,8 +43,8 @@ Curated Values & Files:
     * Variants filenames (.012.pos): <chromosome>.012.pos
     * Kinship filename (.csv): 6.AstleBalding.synbreed.kinship.csv ⚠
     * Population structure filename (.csv): 6.Eigenstrat.population.structure.50PCs.csv ⚠
-    * GWAS run filename (.csv): ⚠
-    * GWAS results filename (.csv): ⚠
+    * GWAS run filename (.csv): ⚠ 11.allStomataresults.csv (may need transform)
+    * GWAS results filename (.csv): ⚠ 11.allStomataresults.csv (may need transform)
     * Missing SNP cutoff value
     * Missing line cutoff value
     * Minor allele frequency cutoff value
@@ -56,12 +56,12 @@ Curated Values & Files:
       * Species subspecies
       * Species variety
       * Population name
-      * Number of chromosome
+      * Number of chromosomes
       * Lines filename (.indv) 
       * Genotype version assembly name
       * Genotype version annotation name 
       * Reference genome line name (line name)
-      * Phenotype filename(s)
+      * Phenotype filename(s) (.ph.csv)*
     Pipeline Design:
       * GWAS algorithm name
       * Imputation method name
@@ -70,7 +70,7 @@ Curated Values & Files:
     Experiment Collection:
       * Genotype filename(s) (.012)
       * Variants filenames (.012.pos)
-      * Phenotype filename(s) ⚠
+      * Phenotype filename(s)
     Pipeline Collection:
       * Kinship filename (.csv)
       * Population structure filename (.csv)
@@ -85,12 +85,28 @@ Todo:
   * Move the lines to a separate, *single* file because right now there are duplicates 
     of each said file for *each* chromosome.
   * Split the phenotypes/traits into individual files with `.ph` file extension
-  * Change genotype_version table so that fields reflect the change from 
+  * Change genotype_version table so that fields reflect the change in the database
+    This change will happen in the `importation.util.insert` module 
+
+Additional Info:
+  During the initial runs to import the data into a local database, these were the average
+  execution times
+
+  Species: < 1 sec
+  Population: < 1 sec
+  Lines: < 30 secs
+  Genotype Version: < 1 sec
+  Phenotypes: < 5 mins
+  Genotypes: ~75 mins
+  Variants: ~4.5 hours 
+
+  Estimated total time: 
 
 """
 import argparse
 import configparser
 import csv
+import errno
 import os
 import sys
 from pprint import pprint
@@ -101,18 +117,20 @@ import numpy as np
 import pandas as pd
 import psycopg2
 
-from util import find, insert
-from util.dbconnect import connect
-from util.models import (chromosome, genotype, genotype_version, growout,
-                         growout_type, gwas_algorithm, gwas_result, gwas_run,
-                         imputation_method, kinship, kinship_algorithm, line,
-                         location, phenotype, population, population_structure,
-                         population_structure_algorithm, species, trait,
-                         variant)
+from importation.util import find, insert
+from importation.util.dbconnect import connect
+from importation.util.models import (chromosome, genotype, genotype_version,
+                                     growout, growout_type, gwas_algorithm,
+                                     gwas_result, gwas_run, imputation_method,
+                                     kinship, kinship_algorithm, line,
+                                     location, phenotype, population,
+                                     population_structure,
+                                     population_structure_algorithm, species,
+                                     trait, variant)
 
-import importation.importSetaria
+
 def process(args):
-  """Workhorse function"""
+  """Imports hardcoded values for Setaria database. Many items are placeholder values."""
   # =======================================
   # ========= Database Connection =========
   # =======================================
@@ -140,7 +158,7 @@ def process(args):
 
   # Expected User Input
   # Species
-  species_shortname = 'sertaria' # setaria
+  species_shortname = 'setaria' # setaria
   species_binomial = 'Setaria italica' # Setaria italica OR Setaria viridis  ???
   species_subspecies = None
   species_variety = None
@@ -149,13 +167,13 @@ def process(args):
   # Chromosome
   chromosome_count = 9 # As defined by `awk -F'\t' '!a[$1]++{print NR":"$0}' 2.from12.setaria.maf0.1.maxMissing0.1.allLines.012.pos`
   # Line
-  lines_filename = Template(f'{args.working_directory}/$chromosome_setaria.012.indv') # NOTE(tparker): Can use any chromosome, as they are the same for each. In the future, this the extraneous copies of the lines may be removed and there will be one specific line file, much like the phenotype files
+  lines_filename = Template('${cwd}/${chr}_${shortname}.012.indv') # NOTE(tparker): Can use any chromosome, as they are the same for each. In the future, this the extraneous copies of the lines may be removed and there will be one specific line file, much like the phenotype files
   # Genotype Version
   # NOTE(tparker): This is possibly just the info about the reference genome
-  #             It is likely included with the VCF genotype file (.012).
+  #                It is likely included with the VCF genotype file (.012).
   genotype_version_assembly_name = 'SetariaGenotypeVersionAssemblyName'
   genotype_version_annotation_name = 'SetariaAnotationVersionName' # NOTE(tparker): Not sure where to find this info or who names it
-  reference_genome_line_name = 'SetariaReferenceGenomeLineName'
+  reference_genome_line_name = 'REF_REF_REF_REF' # Placeholder
   # Growout, Type, and Location
   # NOTE(tparker): Unknown at this time
   ## Location
@@ -163,35 +181,40 @@ def process(args):
   ## Growout
   #
   # Traits
-  phenotype_filename = Template(f'{args.working_directory}/$chromosome.ph.csv')
+  phenotype_filename = Template('${cwd}/${growout}.ph.csv')
 
   # Model Construction & Insertion
   if not args.debug:
     # Species
     s = species(species_shortname, species_binomial, species_subspecies, species_variety)
     species_id = insert.insert_species(conn, s)
+    species_id = find.find_species(conn, species_shortname) # For idempotence
     # Population
     p = population(population_name, species_id)
     population_id = insert.insert_population(conn, p)
+    population_id = find.find_population(conn, population_name) # For idempotence
+    if args.verbose:
+      print(f'[Insert]\tPopulation ID\t{population_id}')
     # Chromosome
     chromosome_ids = insert.insert_all_chromosomes_for_species(conn, chromosome_count, species_id)
     # Line
-    # DEBUG
+    working_filepath = lines_filename.substitute(dict(chr="chr1", cwd=f"{args.working_directory}", shortname=species_shortname))
     try:
-      if not os.path.isfile(lines_filename.safe_substitute(dict(chromosome="chr1"))):
-        raise FileNotFoundError
+      if not os.path.isfile(working_filepath):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), working_filepath)
     except:
       raise
-    else:
-      line_ids = insert.insert_lines_from_file(conn, lines_filename.safe_substitute(dict(chromosome="chr1")), population_id) # hard-coded substitue until just one file is used for lines
-      # Genotype Version
-      reference_genome_id = None # TODO(tparker): Look up line_id given reference genome (Not sure how this is selected), but it's found by its population_id (known) and a reference_genome_line_name
-      line_id = find.find_line(conn, reference_genome_line_name, population_id) # NOTE(tparker): Need input from Greg on if this is the reference genome represented by a line
-      gv = genotype_version(genotype_version_assembly_name,
-                            genotype_version_annotation_name,
-                            reference_genome = line_id,
-                            genotype_version_population = population_id)
-      genotype_version_id = insert.insert_genotype_version(conn, gv)
+
+    line_ids = insert.insert_lines_from_file(conn, working_filepath, population_id) # hard-coded substitue until just one file is used for lines
+    # Genotype Version
+    reference_genome_id = find.find_line(conn, reference_genome_line_name, population_id)
+    gv = genotype_version(genotype_version_assembly_name,
+                          genotype_version_annotation_name,
+                          reference_genome = reference_genome_id,
+                          genotype_version_population = population_id)
+    genotype_version_id = insert.insert_genotype_version(conn, gv)
+    genotype_version_id = find.find_genotype_version(conn, genotype_version_assembly_name)
+    
     # Growout, Type, and Location
     # NOTE(tparker): Unknown at this time
     ## Location
@@ -201,7 +224,12 @@ def process(args):
     # Traits
     # Go through all the phenotype files available for the dataset and insert
     # the recorded traits for each.
-    traits = list(pd.read_csv(phenotype_filename, index_col=0))
+    try:
+      if not os.path.isfile(phenotype_filename.substitute(dict(growout="phenotyper", cwd=f"{args.working_directory}"))):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), phenotype_filename.substitute(dict(growout="phenotyper", cwd=f"{args.working_directory}")))
+    except:
+      raise
+    traits = list(pd.read_csv(phenotype_filename.substitute(dict(growout="phenotyper", cwd=f"{args.working_directory}")), index_col=0))
     trait_ids = insert.insert_traits_from_traitlist(conn, traits)
 
   # DEBUG
@@ -224,7 +252,7 @@ def process(args):
     print(f'insert_all_chromosomes_for_species(conn, {chromosome_count}, {species_id})')
     # Line
     print('\n------------------------\nLines (from file)\n------------------------')
-    print(f'insert_lines_from_file(conn, {lines_filename.safe_substitute(dict(chromosome="chr1"))}, {population_id})')
+    print(f'insert_lines_from_file(conn, {lines_filename.substitute(dict(chr="chr1", cwd=f"{args.working_directory}", shortname=species_shortname))}, {population_id})')
     # Genotype Version
     reference_genome_id = None
     line_id = randint(1, 1000)
@@ -252,7 +280,7 @@ def process(args):
     print('\n------------------------\nTraits\n------------------------')
     print('Trait (from file)')
 
-    print(f'list(pd.read_csv({phenotype_filename.safe_substitute(dict(chromosome="chr1"))}, index_col=0))')
+    print(f'list(pd.read_csv({phenotype_filename.substitute(dict(chr="chr1", cwd=f"{args.working_directory}"))}, index_col=0))')
     traits = [ 'weight', 'height', 'root_angle' ]
     print(f'insert.insert_traits_from_traitlist(conn, {traits})')
     trait_ids = [ randint(1, 1000) for t in traits ]
@@ -266,26 +294,30 @@ def process(args):
   # # Kinship Algorithm: "loiselle"
   # # Population Structure Algorithm: "Eigenstrat"
 
-    # Expected User Input
-    # GWAS Algorithm
-    gwas_algorithm_name = 'MLMM' # According to Greg's README
-    # Imputation Method
-    imputation_method_name = 'SetariaImputationMethodName' # Unknown, apparently it was done by someone named Sujan
-    # Kinship Algorithm
-    kinship_algorithm_name = 'AstleBalding synbreed' # Placeholder, I don't know the exact string that should be used
-    # Population Structure Algorithm
-    population_structure_algorithm_name = 'Eigenstrat' # This is a guess based on filename
+  # Expected User Input
+  # GWAS Algorithm
+  gwas_algorithm_name = 'MLMM' # According to Greg's README
+  # Imputation Method
+  imputation_method_name = 'SetariaImputationMethodName' # Unknown, apparently it was done by someone named Sujan
+  # Kinship Algorithm
+  kinship_algorithm_name = 'AstleBalding synbreed (placeholder)' # Placeholder, I don't know the exact string that should be used
+  # Population Structure Algorithm
+  population_structure_algorithm_name = 'Eigenstrat' # This is a guess based on filename
 
   if not args.debug:
     # Model Construction & Insertion
     # GWAS Algorithm
-    gwas_algorithm_id = insert.insert_gwas_algorithm(conn, gwas_algorithm_name)
+    ga = gwas_algorithm(gwas_algorithm_name)
+    gwas_algorithm_id = insert.insert_gwas_algorithm(conn, ga)
     # Imputation Method
-    imputation_method_id = insert.insert_imputation_method(conn, imputation_method_name)
+    im = imputation_method(imputation_method_name)
+    imputation_method_id = insert.insert_imputation_method(conn, im)
     # Kinship Algorithm
-    kinship_algorithm_id = insert.insert_kinship_algorithm(conn, kinship_algorithm_name)
+    ka = kinship_algorithm(kinship_algorithm_name)
+    kinship_algorithm_id = insert.insert_kinship_algorithm(conn, ka)
     # Population Structure Algorithm
-    population_structure_algorithm_id = insert.insert_population_structure_algorithm(conn, population_structure_algorithm_name)
+    psa = population_structure_algorithm(population_structure_algorithm_name)
+    population_structure_algorithm_id = insert.insert_population_structure_algorithm(conn, psa)
 
   else:
     print('\n\nPipeline Design\n=======================================')
@@ -325,31 +357,43 @@ def process(args):
   # Phenotype
   # NOTE(tparker): Define in earlier stage
   # Genotype
-  genotype_filename = Template(f'{args.working_directory}/$chromosome_shortname.012')
+  genotype_filename = Template('${cwd}/${chr}_${shortname}.012')
   # Variants
-  variants_filename = Template(f'{args.working_directory}/$chromosome_shortname.012.pos')
+  variants_filename = Template('${cwd}/${chr}_${shortname}.012.pos')
 
   if not args.debug:
     # Model Construction & Insertion
     # Phenotype
-    phenotype_ids = insert.insert_phenotypes_from_file(conn, phenotype_filename, population_id)
+    try:
+      if not os.path.isfile(phenotype_filename.substitute(dict(growout="phenotyper", cwd=f"{args.working_directory}"))):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), phenotype_filename.substitute(dict(growout="phenotyper", cwd=f"{args.working_directory}")))
+    except:
+      raise
+    phenotype_ids = insert.insert_phenotypes_from_file(conn, phenotype_filename.substitute(dict(growout="phenotyper", cwd=f"{args.working_directory}")), population_id)
     # Genotype
     for c in range(1, chromosome_count + 1):
       chromosome_shortname = 'chr' + str(c)
       chromosome_id = find.find_chromosome(conn, chromosome_shortname, species_id)
-      geno_filename = genotype_filename.substitute(chromosome_shortname)
-      line_filename = lines_filename.substitute(chromosome_shortname)
-      genotype_ids = insert.insert_genotypes_from_file(conn,
-                                                      geno_filename,
-                                                      line_filename,
-                                                      chromosome_id,
-                                                      population_id,
-                                                      line_id)
+      geno_filename = genotype_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.working_directory}', shortname=species_shortname))
+      line_filename = lines_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.working_directory}', shortname=species_shortname))
+      try:
+        if not os.path.isfile(geno_filename):
+          raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), geno_filename)
+        if not os.path.isfile(line_filename):
+          raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), line_filename)
+      except:
+        raise
+      # genotype_ids = insert.insert_genotypes_from_file(conn, geno_filename, line_filename, chromosome_id, population_id, genotype_version_id)
     # Variants
     for c in range(1, chromosome_count + 1):
       chromosome_shortname = 'chr' + str(c)
       chromosome_id = find.find_chromosome(conn, chromosome_shortname, species_id)
-      variant_filename = variants_filename.substitute(chromosome_shortname)
+      variant_filename = variants_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.working_directory}', shortname=species_shortname))
+      try:
+        if not os.path.isfile(variant_filename):
+          raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), variant_filename)
+      except:
+        raise
       variant_ids = insert.insert_variants_from_file(conn,
                                                     variant_filename,
                                                     species_id,
@@ -360,15 +404,15 @@ def process(args):
     # Model Construction & Insertion
     # Phenotype
     print('\n------------------------\nPhenotypes\n------------------------')
-    print(f'insert.insert_phenotypes_from_file(conn, {phenotype_filename.safe_substitute(dict(chromosome="chr1"))}, {population_id})')
+    print(f'insert.insert_phenotypes_from_file(conn, {phenotype_filename.substitute(dict(chr="chr1", cwd=f"{args.working_directory}"))}, {population_id})')
     # Genotype
     for c in range(1, chromosome_count + 1):
       chromosome_shortname = 'chr' + str(c)
       # chromosome_id = find.find_chromosome(conn, chromosome_shortname, species_id)
       chromosome_id = randint(1, 1000)
       print(f'Chromosome ID set to {chromosome_id}')
-      geno_filename = genotype_filename.safe_substitute(dict(chromosome_shortname=chromosome_shortname))
-      line_filename = lines_filename.safe_substitute(dict(chromosome_shortname=chromosome_shortname))
+      geno_filename = genotype_filename.substitute(dict(chromosome_shortname=chromosome_shortname, cwd=f"{args.working_directory}"))
+      line_filename = lines_filename.substitute(dict(chromosome_shortname=chromosome_shortname, cwd=f"{args.working_directory}"))
       print(f'insert.insert_genotypes_from_file(conn, {geno_filename}, {line_filename}, {chromosome_id}, {population_id}, {line_id})')
       genotype_ids = [ randint(1,1000) for g in range(1,25) ]
       print(f'Genotype IDs set to {genotype_ids}')
@@ -378,7 +422,7 @@ def process(args):
       # chromosome_id = find.find_chromosome(conn, chromosome_shortname, species_id)
       chromosome_id = randint(1, 1000)
       print(f'Chromosome ID set to {chromosome_id}')
-      variant_filename = variants_filename.safe_substitute(dict(chromosome_shortname=chromosome_shortname))
+      variant_filename = variants_filename.substitute(dict(chromosome_shortname=chromosome_shortname))
       print(f'insert.insert_variants_from_file(conn, {variant_filename}, {species_id}, {chromosome_id})')
 
 
@@ -410,6 +454,13 @@ def process(args):
   if not args.debug:
     # Model Construction & Insertion
     # Kinship
+    try:
+      if not os.path.isfile(kinship_filepath):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), kinship_filepath)
+      if not os.path.isfile(population_structure_filepath):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), population_structure_filepath)
+    except:
+      raise
     k = kinship(kinship_algorithm_id, kinship_filepath)
     kinship_id = insert.insert_kinship(conn, k)
     # Population Structure
@@ -460,6 +511,11 @@ def process(args):
     # GWAS Run
     # NOTE(tparker): Check with Greg on what the imputation method was used. I believe it was
     #                set by someone named Sujan because imputation was done beforehand
+    try:
+      if not os.path.isfile(gwas_filename):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), gwas_filename)
+    except:
+      raise
     imputation_method_id = find.find_imputation_method(conn, imputation_method_name)
     gwas_run_ids = insert.insert_gwas_runs_from_gwas_results_file(conn,
                                                                         gwas_filename,
