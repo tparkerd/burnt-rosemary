@@ -108,47 +108,54 @@ Additional Info:
   Estimated total time: 
 
 """
-
-import pandas as pd
-import numpy as np
-import psycopg2
+import argparse
+import configparser
 import csv
-import insert
+import errno
+import os
+import sys
+from pprint import pprint
+from random import randint
+from string import Template
+
+import numpy as np
+import pandas as pd
+import psycopg2
+
 from importation.util import find, insert
-from importation.util.dbconnect import config, connect
-from importation.util.models import species, population, line, chromosome, variant, genotype, trait, phenotype, growout_type, growout, location, gwas_algorithm, genotype_version, imputation_method, kinship_algorithm, kinship, population_structure_algorithm, population_structure, gwas_run, gwas_result
+from importation.util.dbconnect import connect
+from importation.util.models import (chromosome, genotype, genotype_version,
+                                     growout, growout_type, gwas_algorithm,
+                                     gwas_result, gwas_run, imputation_method,
+                                     kinship, kinship_algorithm, line,
+                                     location, phenotype, population,
+                                     population_structure,
+                                     population_structure_algorithm, species,
+                                     trait, variant)
 
+def process(args):
+  try:
+    conn = connect()
+  except:
+    raise
 
-if __name__ == '__main__':
-  conn = connect()
+  # Species
+  species_shortname = 'maize' # setaria
+  species_binomial = 'Zea mays' # Setaria italica OR Setaria viridis  ???
+  species_subspecies = None
+  species_variety = None
+  # Population
+  population_name = 'Maize282'
+  # Chromosome
+  chromosome_count = 10
+  # Line
+  lines_filename = Template('${cwd}/${chr}_${shortname}.012.indv')
+  # Genotype Version
+  genotype_version_assembly_name = 'B73 RefGen_v4'
+  genotype_version_annotation_name = 'AGPv4' # NOTE(tparker): Not sure where to find this info or who names it
+  reference_genome_line_name = 'REF_REF_REF_REF' # Placeholder
 
-  # ADD HARD-CODED VALUES FOR INDEPENDENT TABLES/OBJECTS
-
-  # ADD LOCATIONS
-  locations = []
-  locations.append(location("United States", "Indiana", "West Lafayette", "PU"))
-  locations.append(location("United States", "New York", None, "NY"))
-  locations.append(location("United States", "Florida", None, "FL"))
-  locations.append(location("United States", "Puerto Rico", None, "PR"))
-  locations.append(location("United States", "North Carolina", None, "NC"))
-  locations.append(location("South Africa", None, None, "SA"))
-  locations.append(location("United States", "Missouri", None, "MO"))
-  for place in locations:
-    insert.insert_location(conn, place)
-  # LOOK UP ID OF A HARD-CODED LOCATION USING find_chromosome()
-  PUlocID = find.find_location(conn, 'PU')
-  NYlocID = find.find_location(conn, "NY")
-  FLlocID = find.find_location(conn, "FL")
-  PRlocID = find.find_location(conn, "PR")
-  NClocID = find.find_location(conn, "NC")
-  SAlocID = find.find_location(conn, "SA")
-  MOlocID = find.find_location(conn, "MO")
-
-  # ADD A HARD-CODED SPECIES TO DB USING insert_species()
-  soybeanSpecies = species('soybean', 'Glycine max', None, None)
-  insertedSpeciesID = insert.insert_species(conn, soybeanSpecies)
-  print("[ INSERT ]\t(%s)\t%s" % (insertedSpeciesID, str(soybeanSpecies)))
-  mySpecies = species('maize', 'Zea mays', None, None)
+  s = species(species_shortname, species_binomial, species_subspecies, species_variety)
   insertedSpeciesID = insert.insert_species(conn, mySpecies)
   print("[ INSERT ]\t(%s)\t%s" % (insertedSpeciesID, str(mySpecies)))
   maizeSpeciesID = find.find_species(conn, 'maize')
@@ -158,7 +165,6 @@ if __name__ == '__main__':
   myPopulation = population('Maize282', maizeSpeciesID)
   insertedPopulationID = insert.insert_population(conn, myPopulation)
   print("[ INSERT ]\t(%s)\t%s" % (insertedPopulationID, str(myPopulation)))
-  maize282popID = find.find_population(conn, 'Maize282')
   print("[ FIND ]\t(%s)\t%s" % (maize282popID, '< population: Maize282 >'))
 
   # ADD A HARD-CODED LINE TO DB USING insert_line()
@@ -413,3 +419,64 @@ if __name__ == '__main__':
                                                               0.1)
   print("Inserted gwas result IDs: ")
   print(insertedGwasResultIDs)
+
+def parseOptions():
+  """
+  Function to parse user-provided options from terminal
+  """
+  description="""Importation script specificaly for Setaria dataset.
+  
+  Importation happens in five stages:
+    Experiment Design          Pipeline Design
+            |                         |
+            |                         |
+            V                         V
+  Experiment Collection       Pipeline Collection
+                   \             /
+                    \           /
+                     \         /
+                      V       V
+                       Results
+
+  Example configuration file:
+    # configuration.json
+    {
+      "species": {
+        "shortname": "setaria",
+        "binomial name": "Setaria Dkss"
+      },
+      "population": "wg393",
+      "growout": [
+        {
+          "name": "PH18",
+          "year": "2018",
+          "type": "phenotyper",
+          "location": {
+            "code": "PH18"
+          }
+        }
+      ]
+    }
+    
+    """
+  parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
+  parser.add_argument("--verbose", action="store_true", help="Increase output verbosity")
+  parser.add_argument("--debug", action="store_true", help="Enables --verbose and disables writes to disk")
+  parser.add_argument("-v", "--version", action="version", version='%(prog)s 1.0-alpha')
+  parser.add_argument("-f", "--filename", action="store", help="Specify a configuration file. See documentation for expected format.")
+  parser.add_argument("--log", action="store_true", help="Enabled logging. Filename is appended to %(prog)s.log")
+  parser.add_argument("working_directory", action="store", metavar="WORKING_DIRECTORY", default=".", help="Working directory. Must contains all required files.")
+  print(f'{os.path.basename(__file__)}') # this was just a quick test to see how to get the filename of the script. I don't know why I needed it.
+  args = parser.parse_args()
+  if args.debug is True:
+    args.verbose = True
+    args.write = False
+
+  if args.debug:
+    pprint(args)
+  
+  return args
+
+if __name__ == "__main__":
+  args = parseOptions()
+  process(args)
