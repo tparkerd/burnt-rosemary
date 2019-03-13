@@ -1,25 +1,31 @@
 """Looks up IDs of various elements in the database"""
-
-import pandas as pd
-import numpy as np
-import psycopg2
 import csv
+
+import numpy as np
+import pandas as pd
+import psycopg2
+
 import util.insert
 from util.dbconnect import config, connect
-from util.models import species, population, line, chromosome, variant, genotype, trait, phenotype, growout_type, growout, location, gwas_algorithm, genotype_version, imputation_method, kinship_algorithm, kinship, population_structure_algorithm, population_structure, gwas_run, gwas_result
+from util.models import (chromosome, genotype, genotype_version, growout,
+                         growout_type, gwas_algorithm, gwas_result, gwas_run,
+                         imputation_method, kinship, kinship_algorithm, line,
+                         location, phenotype, population, population_structure,
+                         population_structure_algorithm, species, trait,
+                         variant)
+
 
 def find_species(conn, speciesShortname):
   """Finds species by shortname 
 
-    This function finds species_id for a species by its shortname
-
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param speciesShortname: human-readable shortname of species
-    :type speciesShortname: string
-    :return: species_id
-    :rtype: integer
-    
+  This function finds species_id for a species by its shortname
+  
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    speciesShortname (str): human-readable shortname of species
+  
+  Returns:
+    int: species id
   """
   cur = conn.cursor()
   cur.execute("SELECT species_id FROM species WHERE shortname = '%s';" %  speciesShortname)
@@ -34,14 +40,14 @@ def find_species(conn, speciesShortname):
 def find_population(conn, populationName):
   """Finds species by population name  
 
-    This function finds the population_id for a population by its name
+  This function finds the population_id for a population by its name
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param populationName: human-readable name of population
-    :type populationName: string
-    :return: population_id
-    :rtype: integer
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    populationName (str): human-readable name of population
+  
+  Returns:
+    int: population id
   """
   cur = conn.cursor()
   cur.execute("SELECT population_id FROM population WHERE population_name = '%s';" % populationName)
@@ -58,14 +64,13 @@ def find_chromosome(conn, chromosome_name, chromosome_species):
 
     This function finds the chromosome_id for a chromosome by its name and species id
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param chromosome_name: abbreviation of choromosome name
-    :type chromosome_name: string
-    :param chromosome_species: :ref:`species id <species_class>`
-    :type chromosome_species: integer
-    :return: chromosome_id
-    :rtype: integer
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    chromosome_name (str): abbreviation of choromosome name
+    chromosome_species (int): :ref:`species id <species_class>`
+  
+  Returns:
+    int: chromosome id
   """
   cur = conn.cursor()
   # not sure if next line is correct...
@@ -84,14 +89,13 @@ def find_line(conn, line_name, line_population):
 
     This function finds the line_id for a line by its name and population id
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param line_name: human-readable name of line
-    :type line_name: string
-    :param line_population: :ref:`population id <population_class>`
-    :type line_population: integer
-    :return: line_id
-    :rtype: integer
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    line_name (str): human-readable name of line
+    line_population (int): :ref:`population id <population_class>`
+  
+  Returns:
+   int: line id
   """
   cur = conn.cursor()
   cur.execute("SELECT line_id FROM line WHERE line_name = '%s' AND line_population = '%s';" % (line_name, line_population))
@@ -108,12 +112,12 @@ def find_growout_type(conn, growout_type):
 
     This function finds the growout_id for a growout type by its type
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param growout_type: human-readable name of growout type
-    :type growout_type: string
-    :return: growout_type_id
-    :rtype: integer
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    growout_type (str): human-readable name of growout type
+
+  Returns:
+    int: growout type id
   """
   cur = conn.cursor()
   cur.execute("SELECT growout_type_id FROM growout_type WHERE growout_type = '%s';" % growout_type)
@@ -130,12 +134,12 @@ def find_growout(conn, growout_name):
   
   This function finds the growout_id for a growout by its name
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param growout_name: human-readable name of growout type
-    :type growout_name: string
-    :return: growout_id
-    :rtype:integer
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    growout_name (str): human-readable name of growout type
+  
+  Returns:
+      int: growout id
   """
   cur = conn.cursor()
   cur.execute(
@@ -151,14 +155,14 @@ def find_growout(conn, growout_name):
 def find_location(conn, code):
   """Finds location by its code 
 
-    This function finds the location_id for a location by its code
+  This function finds the location_id for a location by its code
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param code: human-readable code assigned to a location
-    :type code: string
-    :return: location_id
-    :rtype: integer
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    code (str): human-readable code assigned to a location
+  
+  Returns:
+    int: location id
   """
   cur = conn.cursor()
   cur.execute("SELECT location_id FROM location WHERE code = '%s';" % code)
@@ -173,14 +177,14 @@ def find_location(conn, code):
 def find_kinship_algorithm(conn, algorithm):
   """Finds kinship algorithm by algorithm name 
 
-    This function finds the kinship_algorithm_id by its name
+  This function finds the kinship_algorithm_id by its name
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param algorithm: human-readable name for algorithm
-    :type algorithm: string
-    :return: kinship_algorithm_id
-    :rtype: integer
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    algorithm (str): human-readable name for algorithm
+
+  Returns:
+    int: kinsihp algorithm id
   """
   cur = conn.cursor()
   cur.execute("SELECT kinship_algorithm_id FROM kinship_algorithm WHERE kinship_algorithm = '%s';" % algorithm)
@@ -195,14 +199,14 @@ def find_kinship_algorithm(conn, algorithm):
 def find_population_structure_algorithm(conn, algorithm):
   """Finds population structure algorithm by algorithm name
 
-    This function finds the population_structure_id by the name of its algorithm
+  This function finds the population_structure_id by the name of its algorithm
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param algorithm: human-readable name for algorithm
-    :type algorithm: string
-    :return: population_structure_algorithm_id
-    :rtype: integer
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    algorithm (str): human-readable name for algorithm
+  
+  Returns:
+    int: population structure algorithm id
   """
   cur = conn.cursor()
   cur.execute("SELECT population_structure_algorithm_id FROM population_structure_algorithm WHERE population_structure_algorithm = '%s';" % algorithm)
@@ -217,14 +221,14 @@ def find_population_structure_algorithm(conn, algorithm):
 def find_gwas_algorithm(conn, gwas_algorithm):
   """Finds algorithm used for genome-wide association study by algorithm name
 
-    This function finds the gwas_algorithm_id by the name of the algorithm used in a genome-wide association study
+  This function finds the gwas_algorithm_id by the name of the algorithm used in a genome-wide association study
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param gwas_algorithm: human-readable name of a GWAS algorithm
-    :type gwas_algorithm: string
-    :return: gwas_algorithm_id
-    :rtype: integer
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    gwas_algorithm (str): human-readable name of a GWAS algorithm
+  
+  Returns:
+    int: GWAS algorithm id
   """
   cur = conn.cursor()
   cur.execute("SELECT gwas_algorithm_id FROM gwas_algorithm WHERE gwas_algorithm = '%s';" % gwas_algorithm)
@@ -239,14 +243,14 @@ def find_gwas_algorithm(conn, gwas_algorithm):
 def find_genotype_version(conn, genotype_version_name):
   """Finds version of genotype by name 
 
-    This function finds the genotype_version_id of a genotype by its name
+  This function finds the genotype_version_id of a genotype by its name
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param genotype_version_name: human-readable name of genotype version
-    :type genotype_version_name: string
-    :return: genotype_version_id
-    :rtype: integer
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    genotype_version_name (str): human-readable name of genotype version
+  
+  Returns:
+    int: genotype version id
   """
   cur = conn.cursor()
   cur.execute("SELECT genotype_version_id FROM genotype_version WHERE genotype_version_name = '%s';" % genotype_version_name)
@@ -261,14 +265,14 @@ def find_genotype_version(conn, genotype_version_name):
 def find_imputation_method(conn, imputation_method):
   """Finds imputation methodo by name
 
-    This function finds the imputation_method_id by its name
-
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param imputation_method: human-readable name of method
-    :type imputation_method: string
-    :return: imputation_method_id
-    :rtype: integer
+  This function finds the imputation_method_id by its name
+  
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    imputation_method (str): human-readable name of method
+  
+  Returns:
+    int: imputation method id
   """
   cur = conn.cursor()
   cur.execute("SELECT imputation_method_id FROM imputation_method WHERE imputation_method = '%s';" % imputation_method)
@@ -283,15 +287,15 @@ def find_imputation_method(conn, imputation_method):
 def find_kinship(conn, kinship_file_path):
   """Finds kinship by its location on a file system 
 
-    This function finds the kinship_id by its location within a file system
+  This function finds the kinship_id by its location within a file system
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param kinship_file_path: path to kinship file
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    kinship_file_path (str): path to kinship file
     :example path: ``/opt/BaxDB/file_storage/kinship_files/4.AstleBalding.synbreed.kinship.csv``
-    :type kinship_file_path: string
-    :return: kinship_id
-    :rtype: integer
+  
+  Returns:
+    int: kinship id
   """
   cur = conn.cursor()
   cur.execute("SELECT kinship_id FROM kinship WHERE kinship_file_path = '%s';" % kinship_file_path)
@@ -306,15 +310,15 @@ def find_kinship(conn, kinship_file_path):
 def find_population_structure(conn, population_structure_file_path):
   """Finds population_structure by its location within a file system 
 
-    This function placeholder
+  This function placeholder
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param population_structure_file_path: path to kinship file
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    population_structure_file_path (str): path to kinship file
     :example path: ``/opt/BaxDB/file_storage/population_structure_files/4.Eigenstrat.population.structure.10PCs.csv``
-    :type population_structure_file_path: string
-    :return: population_structure_id
-    :rtype: integer
+  
+  Returns:
+    int: population structure id
   """
   cur = conn.cursor()
   cur.execute("SELECT population_structure_id FROM population_structure WHERE population_structure_file_path = '%s';" % population_structure_file_path)
@@ -329,14 +333,14 @@ def find_population_structure(conn, population_structure_file_path):
 def find_trait(conn, trait_name):
   """Finds trait by its name 
 
-    This function finds the traid_id for a trait by its name
-
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param traitName: human-readable name of trait
-    :type traitName: string
-    :return: trait_id
-    :rtype: integer
+  This function finds the traid_id for a trait by its name
+  
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    traitName (str): human-readable name of trait
+  
+  Returns:
+    int: trait id
   """
   cur = conn.cursor()
   cur.execute("SELECT trait_id FROM trait WHERE trait_name = '%s';" % trait_name)
@@ -351,42 +355,31 @@ def find_trait(conn, trait_name):
 def find_gwas_run(conn, gwas_algorithm, missing_snp_cutoff_value, missing_line_cutoff_value, gwas_run_imputation_method, gwas_run_trait, nsnps, nlines, gwas_run_genotype_version, gwas_run_kinship, gwas_run_population_structure, minor_allele_frequency_cutoff_value):
   """Finds GWAS run by its parameters
 
-    This function finds the gwas_run_id by its parameters
+  This function finds the gwas_run_id by its parameters
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    gwas_algorithm (int): :ref:`gwas_algorithm_id <gwas_algorithm_class>`
+    missing_snp_cutoff_value (numeric): ``todo``
+    missing_line_cutoff_value (numeric): ``todo``
+    gwas_run_imputation_method (int): :ref:`imputation_method_id <imputation_method_class>`
+    gwas_run_trait (int): :ref:`traid_id <trait_class>`
+    nsnps (int): ``todo``
+    nlines (int): ``todo``
+    gwas_run_genotype_version (int): :ref:`genotype_version_id <genotype_version_class>`
+    gwas_run_kinship (int): kinship id
+    gwas_run_population_structure (int): :ref:`population_structure_id <population_structure_class>`
+    minor_allele_frequency_cutoff_value (numeric): ``todo``
+  
+  Returns:
+    int: GWAS run id
 
-    :param conn: psycopg2 connection
-    :type conn: connection object
-    :param gwas_algorithm: :ref:`gwas_algorithm_id <gwas_algorithm_class>`
-    :type gwas_algorithm: integer
-    :param missing_snp_cutoff_value: ``todo``
-    :type missing_snp_cutoff_value: numeric
-    :param missing_line_cutoff_value: ``todo``
-    :type missing_line_cutoff_value: numeric
-    :param gwas_run_imputation_method: :ref:`imputation_method_id <imputation_method_class>`
-    :type gwas_run_imputation_method: integer
-    :param gwas_run_trait: :ref:`traid_id <trait_class>`
-    :type gwas_run_trait: integer
-    :param nsnps: ``todo``
-    :type nsnps: integer
-    :param nlines: ``todo``
-    :type nlines: integer
-    :param gwas_run_genotype_version: :ref:`genotype_version_id <genotype_version_class>`
-    :type gwas_run_genotype_version: integer
-    :param gwas_run_kinship: kinship id
-    :type gwas_run_kinship: integer
-    :param gwas_run_population_structure: :ref:`population_structure_id <population_structure_class>`
-    :type gwas_run_population_structure: integer
-    :param minor_allele_frequency_cutoff_value: ``todo``
-    :type minor_allele_frequency_cutoff_value: numeric
-    :return: gwas_run_id
-    :rtype: integer
-
-    .. note::
-      Needs additional information on the
-        - missing_snp_cutoff_value
-        - missing_line_cutoff_value
-        - nsnps
-        - nlines
-        - minor_allele_frequency_cutoff_value
+  .. note::
+    Needs additional information on the
+      - missing_snp_cutoff_value
+      - missing_line_cutoff_value
+      - nsnps
+      - nlines
+      - minor_allele_frequency_cutoff_value
 
   """
   cur = conn.cursor()

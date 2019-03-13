@@ -1,9 +1,7 @@
-"""Fundamental data importation functionality"""
+"""Constructs and executes SQL to insert data into database"""
 import time
 
 import numpy as np
-# Insert objects (as defined in models.py) into the database
-# TODO(timp): Add in the error handling for each cursor/connection to the database
 import pandas as pd
 import psycopg2 as pg
 from tqdm import tqdm
@@ -17,6 +15,25 @@ from util.models import (chromosome, genotype, genotype_version, growout,
                          population_structure_algorithm, species, trait,
                          variant)
 
+def exists_in_database(cur, SQL):
+  """Checks if an object has already been inserted into the database
+
+  Args:
+    cur (psycopg2.extensions.cursor): psycopg2 cursor
+    SQL (str): SQL statement to be executed
+
+  Returns:
+    int if true, None otherwise.
+
+  """
+  cur.execute(SQL)
+  query_result = cur.fetchone()
+  if query_result is not None:
+    known_id = query_result[0]
+    if known_id:
+      return known_id
+  
+  return None
 
 def insert_species(conn, species):
   """Inserts species into database by its shortname, binomial, subspecies, and variety
@@ -31,6 +48,21 @@ def insert_species(conn, species):
     int: species id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT species_id \
+          FROM species \
+          WHERE shortname = '{species.n}' AND \
+                binomial = '{species.b}' AND \
+                subspecies = '{species.s}' AND \
+                variety = '{species.v}'"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO species (shortname, binomial, subspecies, variety)
         VALUES (%s, %s, %s, %s)
         ON CONFLICT DO NOTHING
@@ -60,6 +92,19 @@ def insert_population(conn, population):
     int: population id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT population_id \
+          FROM population \
+          WHERE population_name = '{population.n}' AND \
+                population_species = {population.s}"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO population (population_name, population_species)
         VALUES (%s, %s)
         ON CONFLICT DO NOTHING
@@ -82,12 +127,26 @@ def insert_chromosome(conn, chromosome):
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
-    chromosome (chromomsome): :ref:`chromosome <chromosome_class>` object
+    chromosome (chromosome): :ref:`chromosome <chromosome_class>` object
   
   Returns:
     int: chromosome id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT chromosome_id \
+          FROM chromosome \
+          WHERE chromosome_name = '{chromosome.n}' AND \
+                chromosome_species = {chromosome.s}"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    conn.commit()
+    cur.close()
+    return known_id
+
+
   SQL = """INSERT INTO chromosome (chromosome_name, chromosome_species)
         VALUES (%s, %s)
         ON CONFLICT DO NOTHING
@@ -126,7 +185,7 @@ def insert_all_chromosomes_for_species(conn, numChromosomes, speciesID):
   for chrname in chrlist:
     chrobj = chromosome(chrname, speciesID)
     insertedChromosomeID = insert_chromosome(conn, chrobj)
-    insertedChromosomparameIDs.append(insertedChromosomeID)
+    insertedChromosomeIDs.append(insertedChromosomeID)
   return insertedChromosomeIDs
 
 
@@ -143,6 +202,19 @@ def insert_line(conn, line):
     int: line id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT line_id \
+          FROM line \
+          WHERE line_name = '{line.n}' AND \
+                line_population = {line.p}"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO line (line_name, line_population)
         VALUES (%s, %s)
         ON CONFLICT DO NOTHING
@@ -196,6 +268,20 @@ def insert_variant(conn, variant):
     int: variant id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT variant_id \
+          FROM variant \
+          WHERE variant_species = {variant.s} AND \
+                variant_chromosome = {variant.c} AND \
+                variant_pos = {variant.p}"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO variant(variant_species, variant_chromosome, variant_pos)
         VALUES (%s,%s,%s)
         ON CONFLICT DO NOTHING
@@ -228,9 +314,7 @@ def insert_variants_from_file(conn, variantPosFile, speciesID, chromosomeID):
     list of int: list of variant id
   """
   variantlist = ph.parse_variants_from_file(variantPosFile)
-  # print('num variants:')
   cVariants = len(variantlist)
-  # print(cVariants)
   insertedVariantIDs = []
   for variantpos in tqdm(variantlist, desc="Variants from %s" % variantPosFile):
     variantobj = variant(speciesID, chromosomeID, variantpos)
@@ -252,6 +336,21 @@ def insert_genotype(conn, genotype):
     int: genotype id
   """
   cur = conn.cursor()
+
+  # See if the genotype has already been inserted, and if so, return it
+  SQL = f"SELECT genotype_id \
+          FROM genotype \
+          WHERE genotype_line = {genotype.l} AND \
+                genotype_chromosome = {genotype.c} AND \
+                genotype_genotype_version = '{genotype.v}'"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    conn.commit()
+    cur.close()
+    return known_id
+
+  # Otherwise, the genotype has not been inserted yet, so do so
   SQL = """INSERT INTO genotype(genotype_line, genotype_chromosome, genotype, genotype_genotype_version)
         VALUES (%s,%s,%s,%s)
         ON CONFLICT DO NOTHING
@@ -259,10 +358,10 @@ def insert_genotype(conn, genotype):
 
   args_tuple = (genotype.l, genotype.c, genotype.g, genotype.v)
   cur.execute(SQL, args_tuple)
-  newID = cur.fetchone()[0]
+  genotype_id = cur.fetchone()[0]
   conn.commit()
   cur.close()
-  return newID
+  return genotype_id
 
 
 def insert_genotypes_from_file(conn, genotypeFile, lineFile, chromosomeID, populationID, genotype_versionID):
@@ -354,7 +453,6 @@ def insert_location(conn, location):
   else:
     return None  
 
-
 def insert_phenotype(conn, phenotype):
   """Inserts phenotype into database
 
@@ -368,6 +466,20 @@ def insert_phenotype(conn, phenotype):
     int: phenotype id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT phenotype_id \
+          FROM phenotype \
+          WHERE phenotype_line = {phenotype.l} AND \
+                phenotype_trait = {phenotype.t} AND \
+                phenotype_value = '{phenotype.v}'"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO phenotype(phenotype_line, phenotype_trait, phenotype_value)
         VALUES (%s, %s, %s)
         ON CONFLICT DO NOTHING
@@ -404,8 +516,6 @@ def insert_phenotypes_from_file(conn, phenotypeFile, populationID):
   phenotypeRawData = pd.read_csv(phenotypeFile, index_col=0)
   insertedPhenoIDs = []
   for key, value in tqdm(phenotypeRawData.iteritems(), desc="Phenotypes"):
-    # print("***********KEY**************:")
-    # print(key)
     traitID = find.find_trait(conn, key)
     for line_name, traitval in tqdm(value.iteritems(), desc="Traits"):
       lineID = find.find_line(conn, line_name, populationID)
@@ -413,7 +523,6 @@ def insert_phenotypes_from_file(conn, phenotypeFile, populationID):
         newline = line(line_name, populationID)
         lineID = insert_line(conn, newline)
       pheno = phenotype(lineID, traitID, traitval)
-      # print(pheno)
       insertedPhenoID = insert_phenotype(conn, pheno)
       insertedPhenoIDs.append(insertedPhenoID)
   return insertedPhenoIDs
@@ -432,6 +541,18 @@ def insert_trait(conn, trait):
     int: trait id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT trait_id \
+          FROM trait \
+          WHERE trait_name = '{trait.n}'"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO trait(trait_name)
         VALUES (%s)
         ON CONFLICT DO NOTHING
@@ -832,10 +953,10 @@ def insert_gwas_results_from_file(conn, speciesID, gwas_results_file, gwas_algor
       pcs_list = None
  
     new_gwas_result = gwas_result(chromosomeID, basepair, gwas_run_ID, row['pval'], row['cofactor'], row['order'], row['nullPval'], row['modelAddedPval'], row['model'], pcs_list)
-    if new_gwas_result:
-      print("GWAS result entry successfully imported.")
-    else:
-      print("GWAS result entry import FAILED.")
+    # if new_gwas_result:
+    #   print("GWAS result entry successfully imported.")
+    # else:
+    #   print("GWAS result entry import FAILED.")
     new_gwas_result_ID = insert_gwas_result(conn, new_gwas_result)
     new_gwas_result_IDs.append(new_gwas_result_ID)
   return new_gwas_result_IDs
