@@ -10,6 +10,7 @@ Welcome to burnt-rosemary's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   datasets
 
 
 Indices and tables
