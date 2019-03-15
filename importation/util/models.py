@@ -170,7 +170,7 @@ class phenotype(AutoRepr):
   def __init__(self, phenotype_line, phenotype_trait, phenotype_value):
     self.l = phenotype_line
     self.t = phenotype_trait
-    self.v = phenotype_value
+    self.v = str(phenotype_value)
 
 
 class growout_type(AutoRepr):

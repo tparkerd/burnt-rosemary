@@ -114,7 +114,7 @@ def process(args):
   # ========= Database Connection =========
   # =======================================
   try:
-    conn = connect()
+    conn = connect(args)
   except:
     raise
 
@@ -147,7 +147,8 @@ def process(args):
                         "gwas_results_filename",
                         "missing_SNP_cutoff_value",
                         "missing_line_cutoff_value",
-                        "minor_allele_frequency_cutoff_value"
+                        "minor_allele_frequency_cutoff_value",
+                        "phenotype_filename"
                       ]
 
     missing_keys = []
@@ -175,7 +176,8 @@ def process(args):
                         "gwas_results_filename",
                         "missing_SNP_cutoff_value",
                         "missing_line_cutoff_value",
-                        "minor_allele_frequency_cutoff_value"
+                        "minor_allele_frequency_cutoff_value",
+                        "phenotype_filename"
                       ]
 
     empty_fields = []
@@ -277,16 +279,16 @@ def process(args):
   # Model Construction & Insertion
   # Species
   s = species(species_shortname, species_binomial, species_subspecies, species_variety)
-  species_id = insert.insert_species(conn, s)
-  species_id = find.find_species(conn, species_shortname) # For idempotence
+  species_id = insert.insert_species(conn, args, s)
   # Population
   p = population(population_name, species_id)
-  population_id = insert.insert_population(conn, p)
-  population_id = find.find_population(conn, population_name) # For idempotence
+  population_id = insert.insert_population(conn, args, p)
   if args.verbose:
     print(f'[Insert]\tPopulation ID\t{population_id}')
   # Chromosome
-  chromosome_ids = insert.insert_all_chromosomes_for_species(conn, chromosome_count, species_id)
+  chromosome_ids = insert.insert_all_chromosomes_for_species(conn, args, chromosome_count, species_id)
+  if args.verbose:
+    print(f'[Insert]\tChromosome IDs\t{chromosome_ids}')
   # Line
   working_filepath = lines_filename.substitute(dict(chr="chr1", cwd=f"{args.working_directory}", shortname=species_shortname))
   try:
@@ -295,15 +297,20 @@ def process(args):
   except:
     raise
 
-  line_ids = insert.insert_lines_from_file(conn, working_filepath, population_id) # hard-coded substitue until just one file is used for lines
+  line_ids = insert.insert_lines_from_file(conn, args, working_filepath, population_id) # hard-coded substitue until just one file is used for lines
+  if args.verbose:
+    print(f'[Insert]\tLine IDs\t{line_ids}')
   # Genotype Version
-  reference_genome_id = find.find_line(conn, reference_genome_line_name, population_id)
+  reference_genome_id = find.find_line(conn, args, reference_genome_line_name, population_id)
+  if args.verbose:
+    print(f'[Insert]\Reference Genome ID\t{reference_genome_id}')
   gv = genotype_version(genotype_version_assembly_name,
                         genotype_version_annotation_name,
                         reference_genome = reference_genome_id,
                         genotype_version_population = population_id)
-  genotype_version_id = insert.insert_genotype_version(conn, gv)
-  genotype_version_id = find.find_genotype_version(conn, genotype_version_assembly_name)
+  genotype_version_id = insert.insert_genotype_version(conn, args, gv)
+  if args.verbose:
+    print(f'[Insert]\tGenome Version ID\t{genotype_version_id}')
   
   # Growout, Type, and Location
   # NOTE(tparker): Unknown at this time
@@ -320,8 +327,10 @@ def process(args):
   except:
     raise
   traits = list(pd.read_csv(phenotype_filename, index_col=0))
-  trait_ids = insert.insert_traits_from_traitlist(conn, traits)
-
+  trait_ids = insert.insert_traits_from_traitlist(conn, args, traits)
+  if args.verbose:
+    print(f'[Insert]\tTrait IDs\t{trait_ids}')
+  
   # # =====================================
   # # ========== Pipeline Design ==========
   # # =====================================
@@ -343,17 +352,16 @@ def process(args):
   # Model Construction & Insertion
   # GWAS Algorithm
   ga = gwas_algorithm(gwas_algorithm_name)
-  gwas_algorithm_id = insert.insert_gwas_algorithm(conn, ga)
-  gwas_algorithm_id = find.find_gwas_algorithm(conn, 'MLMM')
+  gwas_algorithm_id = insert.insert_gwas_algorithm(conn, args, ga)
   # Imputation Method
   im = imputation_method(imputation_method_name)
-  imputation_method_id = insert.insert_imputation_method(conn, im)
+  imputation_method_id = insert.insert_imputation_method(conn, args, im)
   # Kinship Algorithm
   ka = kinship_algorithm(kinship_algorithm_name)
-  kinship_algorithm_id = insert.insert_kinship_algorithm(conn, ka)
+  kinship_algorithm_id = insert.insert_kinship_algorithm(conn, args, ka)
   # Population Structure Algorithm
   psa = population_structure_algorithm(population_structure_algorithm_name)
-  population_structure_algorithm_id = insert.insert_population_structure_algorithm(conn, psa)
+  population_structure_algorithm_id = insert.insert_population_structure_algorithm(conn, args, psa)
 
   # ===========================================
   # ========== Experiment Collection ==========
@@ -380,11 +388,13 @@ def process(args):
       raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), phenotype_filename)
   except:
     raise
-  phenotype_ids = insert.insert_phenotypes_from_file(conn, phenotype_filename, population_id)
+  phenotype_ids = insert.insert_phenotypes_from_file(conn, args, phenotype_filename, population_id)
+  if args.verbose:
+    print(f'[Insert]\tPhenotype IDs\t{phenotype_ids}')
   # Genotype
   for c in range(1, chromosome_count + 1):
     chromosome_shortname = 'chr' + str(c)
-    chromosome_id = find.find_chromosome(conn, chromosome_shortname, species_id)
+    chromosome_id = find.find_chromosome(conn, args, chromosome_shortname, species_id)
     geno_filename = genotype_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.working_directory}', shortname=species_shortname))
     line_filename = lines_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.working_directory}', shortname=species_shortname))
     try:
@@ -394,11 +404,11 @@ def process(args):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), line_filename)
     except:
       raise
-    genotype_ids = insert.insert_genotypes_from_file(conn, geno_filename, line_filename, chromosome_id, population_id, genotype_version_id)
+    genotype_ids = insert.insert_genotypes_from_file(conn, args, geno_filename, line_filename, chromosome_id, population_id, genotype_version_id)
   # Variants
   for c in range(1, chromosome_count + 1):
     chromosome_shortname = 'chr' + str(c)
-    chromosome_id = find.find_chromosome(conn, chromosome_shortname, species_id)
+    chromosome_id = find.find_chromosome(conn, args, chromosome_shortname, species_id)
     variant_filename = variants_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.working_directory}', shortname=species_shortname))
     try:
       if not os.path.isfile(variant_filename):
@@ -406,9 +416,10 @@ def process(args):
     except:
       raise
     variant_ids = insert.insert_variants_from_file(conn,
-                                                  variant_filename,
-                                                  species_id,
-                                                  chromosome_id)
+                                                   args,
+                                                   variant_filename,
+                                                   species_id,
+                                                   chromosome_id)
 
   # =========================================
   # ========== Pipeline Collection ==========
@@ -445,11 +456,10 @@ def process(args):
   except:
     raise
   k = kinship(kinship_algorithm_id, kinship_filepath)
-  kinship_id = insert.insert_kinship(conn, k)
+  kinship_id = insert.insert_kinship(conn, args, k)
   # Population Structure
   ps = population_structure(population_structure_algorithm_id, population_structure_filepath)
-  population_structure_id = insert.insert_population_structure(conn, ps)
-  population_structure_id = find.find_population_structure(conn, population_structure_filepath)
+  population_structure_id = insert.insert_population_structure(conn, args, ps)
 
 
   # =============================================
@@ -478,11 +488,12 @@ def process(args):
       raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), gwas_filename)
   except:
     raise
-  imputation_method_id = find.find_imputation_method(conn, imputation_method_name)
+  imputation_method_id = find.find_imputation_method(conn, args, imputation_method_name)
   gwas_run_ids = insert.insert_gwas_runs_from_gwas_results_file(conn,
+                                                                args,
                                                                 gwas_filename,
                                                                 gwas_algorithm_id,
-                                                                reference_genome_id,
+                                                                genotype_version_id,
                                                                 missing_snp_cutoff_value,
                                                                 missing_line_cutoff_value,
                                                                 minor_allele_frequency_cutoff_value,
@@ -491,6 +502,7 @@ def process(args):
                                                                 population_structure_id)
   # GWAS Results
   gwas_result_ids = insert.insert_gwas_results_from_file(conn,
+                                                         args,
                                                          species_id,
                                                          gwas_filename,
                                                          gwas_algorithm_id,

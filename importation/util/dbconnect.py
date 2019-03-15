@@ -1,8 +1,10 @@
 """This module helps connect to a PostgreSQL database"""
-from dotenv import load_dotenv
-import psycopg2
-import sys
 import os
+import sys
+
+import psycopg2
+from dotenv import load_dotenv
+
 
 # Use the parameters in database.ini to configure the database connection
 def config():
@@ -35,13 +37,16 @@ def config():
   return db
 
 # Return a connection to the database
-def connect():
+def connect(args):
   """Creates connection object to database 
 
     This function creates a connection object to database
 
-    :return: connection to database
-    :rtype: connection object
+    Args:
+      args (ArgumentParser namespace): user-defined arguments
+
+    Returns:
+      psycopg2.extensions.connection: PostgreSQL connection object
   """
 
   conn = None
@@ -50,22 +55,25 @@ def connect():
     params = config()
 
     # connect to the PostgreSQL server
-    print('Connection to the PostgreSQL database...')
+    if args.verbose:
+      print('Connection to the PostgreSQL database...')
     conn = psycopg2.connect(**params)
 
     # create a cursor
     cur = conn.cursor()
 
-    print('PostgreSQL database version:')
+    if args.verbose:
+      print('PostgreSQL database version:')
     cur.execute('SELECT version()')
 
     db_version = cur.fetchone()
-    print(db_version)
+    if args.verbose:
+      print(db_version)
 
     # Close the connection
     cur.close()
   except (Exception, psycopg2.DatabaseError) as error:
-    print('Unable to connect!\n{0}').format(error)
+    print('Unable to connect!\n{0}', file=sys.stderr).format(error)
     sys.exit(1)
   
   return conn

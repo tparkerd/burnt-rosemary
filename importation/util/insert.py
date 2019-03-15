@@ -15,6 +15,7 @@ from util.models import (chromosome, genotype, genotype_version, growout,
                          population_structure_algorithm, species, trait,
                          variant)
 
+
 def exists_in_database(cur, SQL):
   """Checks if an object has already been inserted into the database
 
@@ -35,13 +36,14 @@ def exists_in_database(cur, SQL):
   
   return None
 
-def insert_species(conn, species):
+def insert_species(conn, args, species):
   """Inserts species into database by its shortname, binomial, subspecies, and variety
 
   This function inserts a species into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     species (species): :ref:`species <species_class>` object
   
   Returns:
@@ -79,13 +81,14 @@ def insert_species(conn, species):
     return None
 
 
-def insert_population(conn, population):
+def insert_population(conn, args, population):
   """Inserts population into database
 
   This function inserts a population into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     population (population): :ref:`population <population_class>` object
 
   Returns:
@@ -120,13 +123,14 @@ def insert_population(conn, population):
   else:
     return None  
 
-def insert_chromosome(conn, chromosome):
+def insert_chromosome(conn, args, chromosome):
   """Inserts chromosome into database by its name
 
   This function inserts a chromosome into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     chromosome (chromosome): :ref:`chromosome <chromosome_class>` object
   
   Returns:
@@ -167,13 +171,14 @@ def insert_chromosome(conn, chromosome):
     return None
 
 
-def insert_all_chromosomes_for_species(conn, numChromosomes, speciesID):
+def insert_all_chromosomes_for_species(conn, args, numChromosomes, speciesID):
   """Inserts all chromosomes for a species into database by its name
 
   This function inserts all chromosomes for a species into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     numChromosomes (int): upper-bound number of chromosomes to consider for a species
     species (species): :ref:`species <species_class>` object
   
@@ -184,18 +189,19 @@ def insert_all_chromosomes_for_species(conn, numChromosomes, speciesID):
   insertedChromosomeIDs = []
   for chrname in chrlist:
     chrobj = chromosome(chrname, speciesID)
-    insertedChromosomeID = insert_chromosome(conn, chrobj)
+    insertedChromosomeID = insert_chromosome(conn, args, chrobj)
     insertedChromosomeIDs.append(insertedChromosomeID)
   return insertedChromosomeIDs
 
 
-def insert_line(conn, line):
+def insert_line(conn, args, line):
   """Inserts line into database
 
   This function inserts a line into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     line (line): :ref:`line <line_class>` object
     
   Returns:
@@ -231,7 +237,7 @@ def insert_line(conn, line):
     return None
 
 
-def insert_lines_from_file(conn, lineFile, populationID):
+def insert_lines_from_file(conn, args, lineFile, populationID):
   """Inserts lines into database from a file
 
   This function inserts a lines into a database from a file
@@ -239,6 +245,7 @@ def insert_lines_from_file(conn, lineFile, populationID):
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     lineFile (str): absolute path to input file
     populationID (int): :ref:`population <population_class>`
   
@@ -249,17 +256,18 @@ def insert_lines_from_file(conn, lineFile, populationID):
   insertedLineIDs = []
   for linename in tqdm(linelist, desc="Lines"):
     lineobj = line(linename, populationID)
-    insertedLineID = insert_line(conn, lineobj)
+    insertedLineID = insert_line(conn, args, lineobj)
     insertedLineIDs.append(insertedLineID)
   return insertedLineIDs
 
 
-def insert_variant(conn, variant):
+def insert_variant(conn, args, variant):
   """Inserts variant into database
 
   This function inserts a variant into a database
 
   conn (psycopg2.extensions.connection): psycopg2 connection
+  args (ArgumentParser namespace): user-defined arguments
   
   Args:
     variant (variant): :ref:`variant <variant_class>` object
@@ -278,6 +286,8 @@ def insert_variant(conn, variant):
   
   known_id = exists_in_database(cur, SQL)
   if known_id is not None:
+    if args.verbose is True:
+      print(f'[Variant found] {variant}')
     conn.commit()
     cur.close()
     return known_id
@@ -299,13 +309,14 @@ def insert_variant(conn, variant):
     return None
 
 
-def insert_variants_from_file(conn, variantPosFile, speciesID, chromosomeID):
+def insert_variants_from_file(conn, args, variantPosFile, speciesID, chromosomeID):
   """Inserts chromosome into database by its name
 
   This function inserts a chromosome into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     variantPosFile (str): absolute path to input file
     speciesID (int): :ref:`species <species_class>`
     chromosomeID (int): :ref:`chromosome <chromosome_class>`
@@ -318,18 +329,19 @@ def insert_variants_from_file(conn, variantPosFile, speciesID, chromosomeID):
   insertedVariantIDs = []
   for variantpos in tqdm(variantlist, desc="Variants from %s" % variantPosFile):
     variantobj = variant(speciesID, chromosomeID, variantpos)
-    insertedVariantID = insert_variant(conn, variantobj)
+    insertedVariantID = insert_variant(conn, args, variantobj)
     insertedVariantIDs.append(insertedVariantID)
   return insertedVariantIDs
 
 
-def insert_genotype(conn, genotype):
+def insert_genotype(conn, args, genotype):
   """Inserts genotype into database
 
   This function inserts a genotype into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     genotype (genotype): :ref:`genotype <genotype_class>` object
 
   Returns:
@@ -346,6 +358,8 @@ def insert_genotype(conn, genotype):
   
   known_id = exists_in_database(cur, SQL)
   if known_id is not None:
+    if args.verbose is True:
+      print(f'[Genotype found] ({genotype.l}, {genotype.c}, {genotype.v})')
     conn.commit()
     cur.close()
     return known_id
@@ -364,13 +378,14 @@ def insert_genotype(conn, genotype):
   return genotype_id
 
 
-def insert_genotypes_from_file(conn, genotypeFile, lineFile, chromosomeID, populationID, genotype_versionID):
+def insert_genotypes_from_file(conn, args, genotypeFile, lineFile, chromosomeID, populationID, genotype_versionID):
   """Inserts genotypes into database
 
   This function inserts a genotypes into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     genotypeFile (str): absolute path to input file
     lineFile (str): absolute path to input file
     chromosomeID (int): :ref:`chromosome <chromosome_class>`
@@ -381,25 +396,26 @@ def insert_genotypes_from_file(conn, genotypeFile, lineFile, chromosomeID, popul
   """
   genotypes = ph.parse_genotypes_from_file(genotypeFile)
   linelist = ph.parse_lines_from_file(lineFile)
-  lineIDlist = ph.convert_linelist_to_lineIDlist(conn, linelist, populationID)
+  lineIDlist = ph.convert_linelist_to_lineIDlist(conn, args, linelist, populationID)
   zipped = zip(lineIDlist, genotypes)
   ziplist = list(zipped)
   insertedGenotypeIDs = []
   for zippedpair in tqdm(ziplist, desc="Genotypes from %s" % genotypeFile):
     genotypeObj = genotype(zippedpair[0], chromosomeID, zippedpair[1], genotype_versionID)
-    insertedGenotypeID = insert_genotype(conn, genotypeObj)
+    insertedGenotypeID = insert_genotype(conn, args, genotypeObj)
     insertedGenotypeIDs.append(insertedGenotypeID)
 
 
   return insertedGenotypeIDs
 
-def insert_growout(conn, growout):
+def insert_growout(conn, args, growout):
   """Inserts growout into database
 
   This function inserts a growout into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     growout (growout): :ref:`growout <genotype_class>` object
     
   Returns:
@@ -425,13 +441,14 @@ def insert_growout(conn, growout):
   else:
     return None
 
-def insert_location(conn, location):
+def insert_location(conn, args, location):
   """Inserts location into database
 
   This function inserts a location into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     location (location): :ref:`location <location_class>` object
   
   Returns:
@@ -453,13 +470,14 @@ def insert_location(conn, location):
   else:
     return None  
 
-def insert_phenotype(conn, phenotype):
+def insert_phenotype(conn, args, phenotype):
   """Inserts phenotype into database
 
   This function inserts a phenotype into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     phenotype (phenotype): :ref:`phenotype <phenotype_class>` object
     
   Returns:
@@ -472,10 +490,12 @@ def insert_phenotype(conn, phenotype):
           FROM phenotype \
           WHERE phenotype_line = {phenotype.l} AND \
                 phenotype_trait = {phenotype.t} AND \
-                phenotype_value = '{phenotype.v}'"
+                LOWER(phenotype_value) = '{phenotype.v}'" # Lower needed to deal with SQL's representation of NaN ('NaN') and Python's ('nan')
   
   known_id = exists_in_database(cur, SQL)
   if known_id is not None:
+    if args.verbose is True:
+      print(f'[Phenotype found] {phenotype}')
     conn.commit()
     cur.close()
     return known_id
@@ -499,42 +519,44 @@ def insert_phenotype(conn, phenotype):
   else:
     return None
 
-def insert_phenotypes_from_file(conn, phenotypeFile, populationID):
+def insert_phenotypes_from_file(conn, args, phenotype_filename, population_id):
   """Inserts phenotypes into database
 
   This function inserts phenotypes from a file into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
-    phenotypeFile (str): absolute path to input file
-    populationID (int): :ref:`population_id <population_class>`
+    args (ArgumentParser namespace): user-defined arguments
+    phenotype_filename (str): absolute path to input file
+    population_id (int): :ref:`population_id <population_class>`
 
   Returns:
-    list of int: lsit of phenotype id
+    list of int: list of phenotype id
   """
   # Read through just the first column of the CSV, ignoring any column
-  phenotypeRawData = pd.read_csv(phenotypeFile, index_col=0)
-  insertedPhenoIDs = []
-  for key, value in tqdm(phenotypeRawData.iteritems(), desc="Phenotypes"):
-    traitID = find.find_trait(conn, key)
-    for line_name, traitval in tqdm(value.iteritems(), desc="Traits"):
-      lineID = find.find_line(conn, line_name, populationID)
-      if lineID is None:
-        newline = line(line_name, populationID)
-        lineID = insert_line(conn, newline)
-      pheno = phenotype(lineID, traitID, traitval)
-      insertedPhenoID = insert_phenotype(conn, pheno)
-      insertedPhenoIDs.append(insertedPhenoID)
-  return insertedPhenoIDs
+  df = pd.read_csv(phenotype_filename, index_col=0)
+  phenotype_ids = []
+  for key, value in tqdm(df.iteritems(), total=len(df.columns), desc="Phenotypes"):
+    trait_id = find.find_trait(conn, args, key)
+    for line_name, traitval in value.iteritems():
+      line_id = find.find_line(conn, args, line_name, population_id)
+      if line_id is None:
+        l = line(line_name, population_id)
+        line_id = insert_line(conn, args, l)
+      ph = phenotype(line_id, trait_id, traitval)
+      phenotype_id = insert_phenotype(conn, args, ph)
+      phenotype_ids.append(phenotype_id)
+  return phenotype_ids
 
 
-def insert_trait(conn, trait):
+def insert_trait(conn, args, trait):
   """Inserts trait into database
 
   This function inserts a trait into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     trait (trait): :ref:`trait <trait_class>` object
 
   Returns:
@@ -549,6 +571,8 @@ def insert_trait(conn, trait):
   
   known_id = exists_in_database(cur, SQL)
   if known_id is not None:
+    if args.verbose is True:
+      print(f'[Trait found] {trait}')
     conn.commit()
     cur.close()
     return known_id
@@ -569,33 +593,35 @@ def insert_trait(conn, trait):
     return None
 
 
-def insert_traits_from_traitlist(conn, traitlist):
+def insert_traits_from_traitlist(conn, args, traitlist):
   """Inserts traits from list into database
 
   This function inserts a traitlist into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     traitlist (list of str): list of trait names
   
   Returns:
     list of int: list of trait id
   """
   traitIDs = []
-  for traitname in traitlist:
+  for traitname in tqdm(traitlist, desc="Traits"):
     traitObj = trait(traitname, None, None, None)
-    insertedTraitID = insert_trait(conn, traitObj)
+    insertedTraitID = insert_trait(conn, args, traitObj)
     traitIDs.append(insertedTraitID)
   return traitIDs
 
 
-def insert_growout_type(conn, growout_type):
+def insert_growout_type(conn, args, growout_type):
   """Inserts growout type into database
 
   This function inserts a growout type into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     growout_type (growout_type): :ref:`growout_type <growout_type_class>` object
 
   Returns:
@@ -618,7 +644,7 @@ def insert_growout_type(conn, growout_type):
     return None
 
 
-def insert_gwas_algorithm(conn, gwas_algorithm):
+def insert_gwas_algorithm(conn, args, gwas_algorithm):
   """Inserts GWAS algorithm into database
 
   This function inserts a GWAS algorithm into a database
@@ -626,12 +652,27 @@ def insert_gwas_algorithm(conn, gwas_algorithm):
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     gwas_algorithm (gwas_algorithm): :ref:`gwas_algorithm <gwas_algorithm_class>` object
   
   Returns:
     int: gwas algorithm id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT gwas_algorithm_id \
+          FROM gwas_algorithm \
+          WHERE gwas_algorithm = '{gwas_algorithm.a}'"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    if args.verbose is True:
+      print(f'[Genotype algorithm found] {gwas_algorithm}')
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO gwas_algorithm(gwas_algorithm)
         VALUES (%s)
         ON CONFLICT DO NOTHING
@@ -648,19 +689,37 @@ def insert_gwas_algorithm(conn, gwas_algorithm):
     return None
 
 
-def insert_genotype_version(conn, genotype_version):
+def insert_genotype_version(conn, args, genotype_version):
   """Inserts genotype version into database
 
   This function inserts a genotype version into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     genotype_version (genotype_version): :ref:`genotype_version <genotype_version_class>` object
 
   Returns:
     int: genotype version id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT genotype_version_id \
+          FROM genotype_version \
+          WHERE genotype_version_name = '{genotype_version.n}' AND \
+                genotype_version = '{genotype_version.v}' AND \
+                reference_genome = {genotype_version.r} AND \
+                genotype_version_population = {genotype_version.p}"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    if args.verbose is True:
+      print(f'[Genotype version found] {genotype_version}')
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO genotype_version(genotype_version_name, genotype_version, reference_genome, genotype_version_population)
         VALUES (%s,%s,%s,%s)
         ON CONFLICT DO NOTHING
@@ -678,19 +737,34 @@ def insert_genotype_version(conn, genotype_version):
     return None
 
 
-def insert_imputation_method(conn, imputation_method):
+def insert_imputation_method(conn, args, imputation_method):
   """Inserts imputation method into database
 
   This function inserts a imputation method into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     imputation_method (imputation_method): :ref:`imputation_method <imputation_method_class>` object
   
   Returns:
     int: imputation method id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT imputation_method_id \
+          FROM imputation_method \
+          WHERE imputation_method = '{imputation_method.m}'"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    if args.verbose is True:
+      print(f'[Imputation method found] {imputation_method}')
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO imputation_method(imputation_method)
         VALUES (%s)
         ON CONFLICT DO NOTHING
@@ -707,19 +781,34 @@ def insert_imputation_method(conn, imputation_method):
     return None
 
 
-def insert_kinship_algorithm(conn, kinship_algorithm):
+def insert_kinship_algorithm(conn, args, kinship_algorithm):
   """Inserts kinship_algorithm into database
 
   This function inserts a kinship_algorithm into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     kinship_algorithm (kinship_algorithm): :ref:`kinship_algorithm <kinship_algorithm_class>` object
 
   Returns:
     int: kinship algorithm id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT kinship_algorithm_id \
+          FROM kinship_algorithm \
+          WHERE kinship_algorithm = '{kinship_algorithm.a}'"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    if args.verbose is True:
+      print(f'[Kinship algorithm found] {kinship_algorithm}')
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO kinship_algorithm(kinship_algorithm)
         VALUES (%s)
         ON CONFLICT DO NOTHING
@@ -736,19 +825,35 @@ def insert_kinship_algorithm(conn, kinship_algorithm):
     return None
 
 
-def insert_kinship(conn, kinship):
+def insert_kinship(conn, args, kinship):
   """Inserts kinship into database
 
   This function inserts a kinship into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     kinship (kinship): :ref:`kinship <kinship_class>` object
     
   Returns:
     int: kinship id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT kinship_id \
+          FROM kinship \
+          WHERE kinship_algorithm = '{kinship.a}' AND \
+                kinship_file_path = '{kinship.p}'"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    if args.verbose is True:
+      print(f'[Kinship found] {kinship}')
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO kinship(kinship_algorithm, kinship_file_path)
         VALUES (%s,%s)
         ON CONFLICT DO NOTHING
@@ -765,19 +870,33 @@ def insert_kinship(conn, kinship):
     return None
 
 
-def insert_population_structure_algorithm(conn, population_structure_algorithm):
+def insert_population_structure_algorithm(conn, args, population_structure_algorithm):
   """Inserts population_structure_algorithm into database
 
   This function inserts a population_structure_algorithm into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     population_structure_algorithm (population_structure_algorithm): :ref:`population_structure_algorithm <population_structure_algorithm_class>` object
   
   Returns:
     int: population structure algorithm id
   """
   cur = conn.cursor()
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT population_structure_algorithm_id \
+          FROM population_structure_algorithm \
+          WHERE population_structure_algorithm = '{population_structure_algorithm.a}'"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    if args.verbose is True:
+      print(f'[Population structure algorithm found] {population_structure_algorithm}')
+    conn.commit()
+    cur.close()
+    return known_id
+  
   SQL = """INSERT INTO population_structure_algorithm(population_structure_algorithm)
         VALUES (%s)
         ON CONFLICT DO NOTHING
@@ -794,19 +913,35 @@ def insert_population_structure_algorithm(conn, population_structure_algorithm):
     return None
 
 
-def insert_population_structure(conn, population_structure):
+def insert_population_structure(conn, args, population_structure):
   """Inserts population into database
 
   This function inserts a population into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     population (population): :ref:`population <population_class>` object
   
   Returns:
     int: population id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT population_structure_id \
+          FROM population_structure \
+          WHERE population_structure_algorithm = '{population_structure.a}' AND \
+                population_structure_file_path = '{population_structure.p}'"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    if args.verbose is True:
+      print(f'[Population structure found] {population_structure}')
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO population_structure(population_structure_algorithm, population_structure_file_path)
         VALUES (%s,%s)
         ON CONFLICT DO NOTHING
@@ -823,25 +958,49 @@ def insert_population_structure(conn, population_structure):
     return None
 
 
-def insert_gwas_run(conn, gwas_run):
+def insert_gwas_run(conn, args, gwas_run):
   """Inserts gwas_run into database
 
   This function inserts a gwas_run into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     gwas_run (gwas_run): :ref:`gwas_run <gwas_run_class>` object
   
   Returns:
     int: gwas run id
   """
   cur = conn.cursor()
+
+  # See if data has already been inserted, and if so, return it
+  SQL = f"SELECT gwas_run_id \
+          FROM gwas_run \
+          WHERE gwas_run_trait = {gwas_run.t} AND \
+                nsnps = {gwas_run.s} AND \
+                nlines = {gwas_run.l} AND \
+                gwas_run_gwas_algorithm = {gwas_run.a} AND \
+                gwas_run_genotype_version = {gwas_run.v} AND \
+                missing_snp_cutoff_value = {gwas_run.m} AND \
+                missing_line_cutoff_value = {gwas_run.i} AND \
+                minor_allele_frequency_cutoff_value = {gwas_run.n} AND \
+                gwas_run_imputation_method = {gwas_run.p} AND \
+                gwas_run_kinship = {gwas_run.k} AND \
+                gwas_run_population_structure = {gwas_run.o}"
+  
+  known_id = exists_in_database(cur, SQL)
+  if known_id is not None:
+    if args.verbose is True:
+      print(f'[GWAS run found] {gwas_run}')
+    conn.commit()
+    cur.close()
+    return known_id
+
   SQL = """INSERT INTO gwas_run(gwas_run_trait, nsnps, nlines, gwas_run_gwas_algorithm, gwas_run_genotype_version, missing_snp_cutoff_value, missing_line_cutoff_value, minor_allele_frequency_cutoff_value, gwas_run_imputation_method, gwas_run_kinship, gwas_run_population_structure)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         RETURNING gwas_run_id;"""
   args = (gwas_run.t, gwas_run.s, gwas_run.l, gwas_run.a, gwas_run.v, gwas_run.m, gwas_run.i, gwas_run.n, gwas_run.p, gwas_run.k, gwas_run.o)
-  # print(gwas_run)
   cur.execute(SQL, args)
   row = cur.fetchone()
   if row is not None:
@@ -853,13 +1012,14 @@ def insert_gwas_run(conn, gwas_run):
     return None
 
 
-def insert_gwas_runs_from_gwas_results_file(conn, gwas_results_file, gwasRunAlgorithmID, gwasRunGenotypeVersionID, missing_snp_cutoff_value, missing_line_cutoff_value, minor_allele_frequency_cutoff_value, gwasRunImputationMethodID, gwasRunKinshipID, gwasRunPopulationStructureID):
+def insert_gwas_runs_from_gwas_results_file(conn, args, gwas_results_file, gwasRunAlgorithmID, gwasRunGenotypeVersionID, missing_snp_cutoff_value, missing_line_cutoff_value, minor_allele_frequency_cutoff_value, gwasRunImputationMethodID, gwasRunKinshipID, gwasRunPopulationStructureID):
   """Inserts a collection of GWAS runs from an input file into database
 
   This function inserts a a collection of GWAS runs from an input file into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     gwas_results_file (str): absolute path to input file
     gwasRunAlgorithmID (int): :ref:`gwas_algorithm_id <gwas_algorithm_class>`
     gwasRunGenotypeVersionID (int): :ref:`genotype_version_id <genotype_version_class>`
@@ -874,21 +1034,22 @@ def insert_gwas_runs_from_gwas_results_file(conn, gwas_results_file, gwasRunAlgo
   """
   gwas_run_list = ph.parse_unique_runs_from_gwas_results_file(gwas_results_file)
   insertedGwasRunIDs = []
-  for gwas_run_item in gwas_run_list:
-    traitID = find.find_trait(conn, gwas_run_item[0])
+  for gwas_run_item in tqdm(gwas_run_list, desc="GWAS Runs"):
+    traitID = find.find_trait(conn, args, gwas_run_item[0])
     gwas_run_obj = gwas_run(traitID, gwas_run_item[1], gwas_run_item[2], gwasRunAlgorithmID, gwasRunGenotypeVersionID, missing_snp_cutoff_value, missing_line_cutoff_value, minor_allele_frequency_cutoff_value, gwasRunImputationMethodID, gwasRunKinshipID, gwasRunPopulationStructureID)
-    insertedGwasRunID = insert_gwas_run(conn, gwas_run_obj)
+    insertedGwasRunID = insert_gwas_run(conn, args, gwas_run_obj)
     insertedGwasRunIDs.append(insertedGwasRunID)
   return insertedGwasRunIDs
 
 
-def insert_gwas_result(conn, gwas_result):
+def insert_gwas_result(conn, args, gwas_result):
   """Inserts gwas_result into database
 
   This function inserts a gwas_result into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     gwas_result (gwas_result): :ref:`gwas_result <gwas_result_class>` object
   
   Returns:
@@ -911,13 +1072,14 @@ def insert_gwas_result(conn, gwas_result):
     return None
 
 
-def insert_gwas_results_from_file(conn, speciesID, gwas_results_file, gwas_algorithm_ID, missing_snp_cutoff_value, missing_line_cutoff_value, imputationMethodID, genotypeVersionID, kinshipID, populationStructureID, minor_allele_frequency_cutoff_value):
+def insert_gwas_results_from_file(conn, args, speciesID, gwas_results_file, gwas_algorithm_ID, missing_snp_cutoff_value, missing_line_cutoff_value, imputationMethodID, genotypeVersionID, kinshipID, populationStructureID, minor_allele_frequency_cutoff_value):
   """Inserts a collection of GWAS results from a file into database
 
   This function inserts a collection of GWAS results from a file into a database
 
   Args:
     conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
     speciesID (int): :ref:`species_id <species_class>`
     gwas_results_file (str): absolute path to input file
     gwas_algorithm_ID (int): :ref:`gwas_algorithm_id <gwas_algorithm_class>`
@@ -934,15 +1096,15 @@ def insert_gwas_results_from_file(conn, speciesID, gwas_results_file, gwas_algor
   """
   new_gwas_result_IDs = []
   df = pd.read_csv(gwas_results_file)
-  for index, row in tqdm(df.iterrows(), desc="GWAS Results"):
+  for index, row in tqdm(df.iterrows(), total=df.shape[0], desc="GWAS Results"):
     trait = row['trait']
-    traitID = find.find_trait(conn, trait)
-    gwas_run_ID = find.find_gwas_run(conn, gwas_algorithm_ID, missing_snp_cutoff_value, missing_line_cutoff_value, imputationMethodID, traitID, row['nSNPs'], row['nLines'], genotypeVersionID, kinshipID, populationStructureID, minor_allele_frequency_cutoff_value)
+    traitID = find.find_trait(conn, args, trait)
+    gwas_run_ID = find.find_gwas_run(conn, args, gwas_algorithm_ID, missing_snp_cutoff_value, missing_line_cutoff_value, imputationMethodID, traitID, row['nSNPs'], row['nLines'], genotypeVersionID, kinshipID, populationStructureID, minor_allele_frequency_cutoff_value)
     snp = row['SNP']
     snp_list = snp.split("_")
     chromosome = snp_list[0]
     chromosome = "chr"+str(chromosome)
-    chromosomeID = find.find_chromosome(conn, chromosome, speciesID)
+    chromosomeID = find.find_chromosome(conn, args, chromosome, speciesID)
     basepair = snp_list[1]
     
     pcs = row['PCs']
@@ -957,6 +1119,6 @@ def insert_gwas_results_from_file(conn, speciesID, gwas_results_file, gwas_algor
     #   print("GWAS result entry successfully imported.")
     # else:
     #   print("GWAS result entry import FAILED.")
-    new_gwas_result_ID = insert_gwas_result(conn, new_gwas_result)
+    new_gwas_result_ID = insert_gwas_result(conn, args, new_gwas_result)
     new_gwas_result_IDs.append(new_gwas_result_ID)
   return new_gwas_result_IDs

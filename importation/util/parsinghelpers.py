@@ -51,7 +51,7 @@ def parse_lines_from_file(lineFile):
       linelist.append(linename)
   return linelist
 
-def convert_linelist_to_lineIDlist(conn, linelist, populationID):
+def convert_linelist_to_lineIDlist(conn, args, linelist, populationID):
   """Converts list of named lines to list of line IDs
 
   :param linelist:
@@ -64,7 +64,7 @@ def convert_linelist_to_lineIDlist(conn, linelist, populationID):
   """
   lineIDlist = []
   for linename in linelist:
-    lineID = find.find_line(conn, linename, populationID)
+    lineID = find.find_line(conn, args, linename, populationID)
     lineIDlist.append(lineID)
   return lineIDlist
 

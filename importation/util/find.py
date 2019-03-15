@@ -15,7 +15,7 @@ from util.models import (chromosome, genotype, genotype_version, growout,
                          variant)
 
 
-def find_species(conn, speciesShortname):
+def find_species(conn, args, speciesShortname):
   """Finds species by shortname 
 
   This function finds species_id for a species by its shortname
@@ -37,7 +37,7 @@ def find_species(conn, speciesShortname):
   else:
     return None
 
-def find_population(conn, populationName):
+def find_population(conn, args, populationName):
   """Finds species by population name  
 
   This function finds the population_id for a population by its name
@@ -59,7 +59,7 @@ def find_population(conn, populationName):
   else:
     return None
 
-def find_chromosome(conn, chromosome_name, chromosome_species):
+def find_chromosome(conn, args, chromosome_name, chromosome_species):
   """Finds chromosome by name and species id
 
     This function finds the chromosome_id for a chromosome by its name and species id
@@ -84,7 +84,7 @@ def find_chromosome(conn, chromosome_name, chromosome_species):
   else:
     return None
 
-def find_line(conn, line_name, line_population):
+def find_line(conn, args, line_name, line_population):
   """Finds line by its name and population name 
 
     This function finds the line_id for a line by its name and population id
@@ -107,7 +107,7 @@ def find_line(conn, line_name, line_population):
   else:
     return None
 
-def find_growout_type(conn, growout_type):
+def find_growout_type(conn, args, growout_type):
   """Finds growout type by its name  
 
     This function finds the growout_id for a growout type by its type
@@ -129,7 +129,7 @@ def find_growout_type(conn, growout_type):
   else:
     return None
 
-def find_growout(conn, growout_name):
+def find_growout(conn, args, growout_name):
   """Finds growout ID by its name
   
   This function finds the growout_id for a growout by its name
@@ -152,7 +152,7 @@ def find_growout(conn, growout_name):
   else:
     return None
    
-def find_location(conn, code):
+def find_location(conn, args, code):
   """Finds location by its code 
 
   This function finds the location_id for a location by its code
@@ -174,7 +174,7 @@ def find_location(conn, code):
   else:
     return None
 
-def find_kinship_algorithm(conn, algorithm):
+def find_kinship_algorithm(conn, args, algorithm):
   """Finds kinship algorithm by algorithm name 
 
   This function finds the kinship_algorithm_id by its name
@@ -196,7 +196,7 @@ def find_kinship_algorithm(conn, algorithm):
   else:
     return None
 
-def find_population_structure_algorithm(conn, algorithm):
+def find_population_structure_algorithm(conn, args, algorithm):
   """Finds population structure algorithm by algorithm name
 
   This function finds the population_structure_id by the name of its algorithm
@@ -218,7 +218,7 @@ def find_population_structure_algorithm(conn, algorithm):
   else:
     return None
 
-def find_gwas_algorithm(conn, gwas_algorithm):
+def find_gwas_algorithm(conn, args, gwas_algorithm):
   """Finds algorithm used for genome-wide association study by algorithm name
 
   This function finds the gwas_algorithm_id by the name of the algorithm used in a genome-wide association study
@@ -240,7 +240,7 @@ def find_gwas_algorithm(conn, gwas_algorithm):
   else:
     return None
 
-def find_genotype_version(conn, genotype_version_name):
+def find_genotype_version(conn, args, genotype_version_name):
   """Finds version of genotype by name 
 
   This function finds the genotype_version_id of a genotype by its name
@@ -262,7 +262,7 @@ def find_genotype_version(conn, genotype_version_name):
   else:
     return None
 
-def find_imputation_method(conn, imputation_method):
+def find_imputation_method(conn, args, imputation_method):
   """Finds imputation methodo by name
 
   This function finds the imputation_method_id by its name
@@ -284,7 +284,7 @@ def find_imputation_method(conn, imputation_method):
   else:
     return None
 
-def find_kinship(conn, kinship_file_path):
+def find_kinship(conn, args, kinship_file_path):
   """Finds kinship by its location on a file system 
 
   This function finds the kinship_id by its location within a file system
@@ -307,7 +307,7 @@ def find_kinship(conn, kinship_file_path):
   else:
     return None
 
-def find_population_structure(conn, population_structure_file_path):
+def find_population_structure(conn, args, population_structure_file_path):
   """Finds population_structure by its location within a file system 
 
   This function placeholder
@@ -330,7 +330,7 @@ def find_population_structure(conn, population_structure_file_path):
   else:
     return None
 
-def find_trait(conn, trait_name):
+def find_trait(conn, args, trait_name):
   """Finds trait by its name 
 
   This function finds the traid_id for a trait by its name
@@ -352,7 +352,7 @@ def find_trait(conn, trait_name):
   else:
     return None
 
-def find_gwas_run(conn, gwas_algorithm, missing_snp_cutoff_value, missing_line_cutoff_value, gwas_run_imputation_method, gwas_run_trait, nsnps, nlines, gwas_run_genotype_version, gwas_run_kinship, gwas_run_population_structure, minor_allele_frequency_cutoff_value):
+def find_gwas_run(conn, args, gwas_algorithm, missing_snp_cutoff_value, missing_line_cutoff_value, gwas_run_imputation_method, gwas_run_trait, nsnps, nlines, gwas_run_genotype_version, gwas_run_kinship, gwas_run_population_structure, minor_allele_frequency_cutoff_value):
   """Finds GWAS run by its parameters
 
   This function finds the gwas_run_id by its parameters
