@@ -707,8 +707,8 @@ def insert_genotype_version(conn, args, genotype_version):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT genotype_version_id \
           FROM genotype_version \
-          WHERE genotype_version_name = '{genotype_version.n}' AND \
-                genotype_version = '{genotype_version.v}' AND \
+          WHERE genotype_version_assembly_name = '{genotype_version.n}' AND \
+                genotype_version_annotation_name = '{genotype_version.v}' AND \
                 reference_genome = {genotype_version.r} AND \
                 genotype_version_population = {genotype_version.p}"
   
@@ -720,7 +720,7 @@ def insert_genotype_version(conn, args, genotype_version):
     cur.close()
     return known_id
 
-  SQL = """INSERT INTO genotype_version(genotype_version_name, genotype_version, reference_genome, genotype_version_population)
+  SQL = """INSERT INTO genotype_version(genotype_version_assembly_name, genotype_version_annotation_name, reference_genome, genotype_version_population)
         VALUES (%s,%s,%s,%s)
         ON CONFLICT DO NOTHING
         RETURNING genotype_version_id;"""
