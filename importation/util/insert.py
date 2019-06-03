@@ -519,7 +519,7 @@ def insert_phenotype(conn, args, phenotype):
   else:
     return None
 
-def insert_phenotypes_from_file(conn, args, phenotype_filename, population_id):
+def insert_phenotypes_from_file(conn, args, phenotype_filename, population_id, filename):
   """Inserts phenotypes into database
 
   This function inserts phenotypes from a file into a database
@@ -536,7 +536,7 @@ def insert_phenotypes_from_file(conn, args, phenotype_filename, population_id):
   # Read through just the first column of the CSV, ignoring any column
   df = pd.read_csv(phenotype_filename, index_col=0)
   phenotype_ids = []
-  for key, value in tqdm(df.iteritems(), total=len(df.columns), desc="Phenotypes"):
+  for key, value in tqdm(df.iteritems(), total=len(df.columns), desc=f"Phenotypes from {filename}"):
     trait_id = find.find_trait(conn, args, key)
     for line_name, traitval in value.iteritems():
       line_id = find.find_line(conn, args, line_name, population_id)
@@ -593,7 +593,7 @@ def insert_trait(conn, args, trait):
     return None
 
 
-def insert_traits_from_traitlist(conn, args, traitlist):
+def insert_traits_from_traitlist(conn, args, traitlist, filename):
   """Inserts traits from list into database
 
   This function inserts a traitlist into a database
@@ -607,7 +607,7 @@ def insert_traits_from_traitlist(conn, args, traitlist):
     list of int: list of trait id
   """
   traitIDs = []
-  for traitname in tqdm(traitlist, desc="Traits"):
+  for traitname in tqdm(traitlist, desc=f"Traits from {filename}"):
     traitObj = trait(traitname, None, None, None)
     insertedTraitID = insert_trait(conn, args, traitObj)
     traitIDs.append(insertedTraitID)

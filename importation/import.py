@@ -214,10 +214,23 @@ def process(args):
     generic_filename = Template('${cwd}/${filename}')
     locations = [
       dict(cwd=args.working_directory, filename=dp['kinship_filename']),
-      dict(cwd=args.working_directory, filename=dp['population_structure_filename']),
-      dict(cwd=args.working_directory, filename=dp['gwas_run_filename']),
-      dict(cwd=args.working_directory, filename=dp['phenotype_filename'])
+      dict(cwd=args.working_directory, filename=dp['population_structure_filename'])
     ]
+
+    # Since there can be more than one file for the phenotypes, results, and run
+    # For each array in the configuration file, add it to the list of paths to 
+    # verify as existing
+    for configuration_entry in dp:
+      if isinstance(dp[configuration_entry], list):
+        for filename in dp[configuration_entry]:
+          locations.append(dict(cwd=args.working_directory, filename=filename))
+      else:
+        if configuration_entry in [ 'phenotype_filename', 'gwas_run_filename', 'gwas_results_filename' ]:
+          locations.append(dict(cwd=args.working_directory, filename=dp['phenotype_filename']))
+
+    if args.debug:
+      print(f'All file locations:')
+      pprint(locations)
 
     for file_descriptor in locations:
       file_path = generic_filename.substitute(file_descriptor)
@@ -274,7 +287,11 @@ def process(args):
   ## Growout
   #
   # Traits
-  phenotype_filename = f'{args.working_directory}/{dp["phenotype_filename"]}'
+  # Allow for more than on phenotype files
+  if isinstance(dp["phenotype_filename"], list):
+    phenotype_filenames = [ f'{args.working_directory}/{filename}' for filename in dp['phenotype_filename'] ]
+  else:
+    phenotype_filenames = [ f'{args.working_directory}/{dp["phenotype_filename"]}']
 
   # Model Construction & Insertion
   # Species
@@ -321,15 +338,16 @@ def process(args):
   # Traits
   # Go through all the phenotype files available for the dataset and insert
   # the recorded traits for each.
-  try:
-    if not os.path.isfile(phenotype_filename):
-      raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), phenotype_filename)
-  except:
-    raise
-  traits = list(pd.read_csv(phenotype_filename, index_col=0))
-  trait_ids = insert.insert_traits_from_traitlist(conn, args, traits)
-  if args.verbose:
-    print(f'[Insert]\tTrait IDs\t{trait_ids}')
+  for phenotype_filepath in phenotype_filenames:
+    try:
+      if not os.path.isfile(phenotype_filepath):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), phenotype_filepath)
+    except:
+      raise
+    traits = list(pd.read_csv(phenotype_filepath, index_col=0))
+    trait_ids = insert.insert_traits_from_traitlist(conn, args, traits, phenotype_filepath)
+    if args.verbose:
+      print(f'[Insert]\tTrait IDs for {phenotype_filepath}\t{trait_ids}')
   
   # # =====================================
   # # ========== Pipeline Design ==========
@@ -383,14 +401,16 @@ def process(args):
 
   # Model Construction & Insertion
   # Phenotype
-  try:
-    if not os.path.isfile(phenotype_filename):
-      raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), phenotype_filename)
-  except:
-    raise
-  phenotype_ids = insert.insert_phenotypes_from_file(conn, args, phenotype_filename, population_id)
-  if args.verbose:
-    print(f'[Insert]\tPhenotype IDs\t{phenotype_ids}')
+  for phenotype_filepath in phenotype_filenames:
+    try:
+      if not os.path.isfile(phenotype_filepath):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), phenotype_filepath)
+    except:
+      raise
+    phenotype_ids = insert.insert_phenotypes_from_file(conn, args, phenotype_filepath, population_id, phenotype_filepath)
+    if args.verbose:
+      print(f'[Insert]\tPhenotype IDs for {phenotype_filepath}\t{phenotype_ids}')
+
   # Genotype
   for c in range(1, chromosome_count + 1):
     chromosome_shortname = 'chr' + str(c)
@@ -470,7 +490,10 @@ def process(args):
 
   # Expected User Input
   # GWAS Run & results
-  gwas_filename = f'{args.working_directory}/{dp["gwas_results_filename"]}'
+  if isinstance(dp['gwas_results_filename'], list):
+    gwas_filenames = [ f'{args.working_directory}/{filename}' for filename in dp['gwas_results_filename'] ] # allows for more than one gwas results/run file
+  else:
+    gwas_filenames = f'{args.working_directory}/{dp["gwas_results_filename"]}'
   # The following values (0.2, 0.2, and 0.1) were all taken from the Maize282 import
   # NOTE(tparker): Make sure to double check with Greg on what the true values should be
   #                Also, double check the source of the pipeline to see if there is any
@@ -483,36 +506,37 @@ def process(args):
   # GWAS Run
   # NOTE(tparker): Check with Greg on what the imputation method was used. I believe it was
   #                set by someone named Sujan because imputation was done beforehand
-  try:
-    if not os.path.isfile(gwas_filename):
-      raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), gwas_filename)
-  except:
-    raise
-  imputation_method_id = find.find_imputation_method(conn, args, imputation_method_name)
-  gwas_run_ids = insert.insert_gwas_runs_from_gwas_results_file(conn,
-                                                                args,
-                                                                gwas_filename,
-                                                                gwas_algorithm_id,
-                                                                genotype_version_id,
-                                                                missing_snp_cutoff_value,
-                                                                missing_line_cutoff_value,
-                                                                minor_allele_frequency_cutoff_value,
-                                                                imputation_method_id,
-                                                                kinship_id,
-                                                                population_structure_id)
-  # GWAS Results
-  gwas_result_ids = insert.insert_gwas_results_from_file(conn,
-                                                         args,
-                                                         species_id,
-                                                         gwas_filename,
-                                                         gwas_algorithm_id,
-                                                         missing_snp_cutoff_value,
-                                                         missing_line_cutoff_value,
-                                                         imputation_method_id,
-                                                         reference_genome_id,
-                                                         kinship_id,
-                                                         population_structure_id,
-                                                         minor_allele_frequency_cutoff_value)
+  for gwas_filename in gwas_filenames:  
+    try:
+      if not os.path.isfile(gwas_filename):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), gwas_filename)
+    except:
+      raise
+    imputation_method_id = find.find_imputation_method(conn, args, imputation_method_name)
+    gwas_run_ids = insert.insert_gwas_runs_from_gwas_results_file(conn,
+                                                                  args,
+                                                                  gwas_filename,
+                                                                  gwas_algorithm_id,
+                                                                  genotype_version_id,
+                                                                  missing_snp_cutoff_value,
+                                                                  missing_line_cutoff_value,
+                                                                  minor_allele_frequency_cutoff_value,
+                                                                  imputation_method_id,
+                                                                  kinship_id,
+                                                                  population_structure_id)
+    # GWAS Results
+    gwas_result_ids = insert.insert_gwas_results_from_file(conn,
+                                                          args,
+                                                          species_id,
+                                                          gwas_filename,
+                                                          gwas_algorithm_id,
+                                                          missing_snp_cutoff_value,
+                                                          missing_line_cutoff_value,
+                                                          imputation_method_id,
+                                                          reference_genome_id,
+                                                          kinship_id,
+                                                          population_structure_id,
+                                                          minor_allele_frequency_cutoff_value)
 
 def parseOptions():
   """
