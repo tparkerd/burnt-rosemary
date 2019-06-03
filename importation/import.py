@@ -493,7 +493,7 @@ def process(args):
   if isinstance(dp['gwas_results_filename'], list):
     gwas_filenames = [ f'{args.working_directory}/{filename}' for filename in dp['gwas_results_filename'] ] # allows for more than one gwas results/run file
   else:
-    gwas_filenames = f'{args.working_directory}/{dp["gwas_results_filename"]}'
+    gwas_filenames = [ f'{args.working_directory}/{dp["gwas_results_filename"]}' ]
   # The following values (0.2, 0.2, and 0.1) were all taken from the Maize282 import
   # NOTE(tparker): Make sure to double check with Greg on what the true values should be
   #                Also, double check the source of the pipeline to see if there is any
