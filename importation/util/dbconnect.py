@@ -4,6 +4,7 @@ import sys
 
 import psycopg2
 from dotenv import load_dotenv
+import logging
 
 
 # Use the parameters in database.ini to configure the database connection
@@ -55,25 +56,24 @@ def connect(args):
     params = config()
 
     # connect to the PostgreSQL server
-    if args.verbose:
-      print('Connection to the PostgreSQL database...')
+    logging.info('Connecting to the PostgreSQL database.')
     conn = psycopg2.connect(**params)
+    if (conn):
+      logging.info("Successfully connected to PostgreSQL database.")
 
     # create a cursor
     cur = conn.cursor()
 
-    if args.verbose:
-      print('PostgreSQL database version:')
+    logging.debug('PostgreSQL database version:')
     cur.execute('SELECT version()')
 
     db_version = cur.fetchone()
-    if args.verbose:
-      print(db_version)
+    logging.debug(db_version)
 
     # Close the connection
     cur.close()
   except (Exception, psycopg2.DatabaseError) as error:
-    print('Unable to connect!\n{0}', file=sys.stderr).format(error)
+    logging.error('Unable to connect!\n%s', error)
     sys.exit(1)
   
   return conn

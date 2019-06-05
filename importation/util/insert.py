@@ -1,4 +1,5 @@
 """Constructs and executes SQL to insert data into database"""
+import logging
 import time
 
 import numpy as np
@@ -8,15 +9,17 @@ from tqdm import tqdm
 
 import importation.util.find as find
 import importation.util.parsinghelpers as ph
-from importation.util.models import (chromosome, genotype, genotype_version, growout,
-                         growout_type, gwas_algorithm, gwas_result, gwas_run,
-                         imputation_method, kinship, kinship_algorithm, line,
-                         location, phenotype, population, population_structure,
-                         population_structure_algorithm, species, trait,
-                         variant)
+from importation.util.models import (chromosome, genotype, genotype_version,
+                                     growout, growout_type, gwas_algorithm,
+                                     gwas_result, gwas_run, imputation_method,
+                                     kinship, kinship_algorithm, line,
+                                     location, phenotype, population,
+                                     population_structure,
+                                     population_structure_algorithm, species,
+                                     trait, variant)
 
 
-def exists_in_database(cur, SQL):
+def exists_in_database(cur, SQL, params):
   """Checks if an object has already been inserted into the database
 
   Args:
@@ -27,7 +30,7 @@ def exists_in_database(cur, SQL):
     int if true, None otherwise.
 
   """
-  cur.execute(SQL)
+  cur.execute(SQL, params)
   query_result = cur.fetchone()
   if query_result is not None:
     known_id = query_result[0]
@@ -54,12 +57,13 @@ def insert_species(conn, args, species):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT species_id \
           FROM species \
-          WHERE shortname = '{species.n}' AND \
-                binomial = '{species.b}' AND \
-                subspecies = '{species.s}' AND \
-                variety = '{species.v}'"
-  
-  known_id = exists_in_database(cur, SQL)
+          WHERE shortname = %s AND \
+                binomial = %s AND \
+                subspecies = %s AND \
+                variety = %s"
+  args_tuple = (species.n, species.b, species.s, species.v)
+
+  known_id = exists_in_database(cur, SQL, args_tuple)
   if known_id is not None:
     conn.commit()
     cur.close()
@@ -69,7 +73,6 @@ def insert_species(conn, args, species):
         VALUES (%s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         RETURNING species_id;"""
-  args_tuple = (species.n, species.b, species.s, species.v)
   cur.execute(SQL, args_tuple)
   row = cur.fetchone()
   if row is not None:
@@ -99,10 +102,11 @@ def insert_population(conn, args, population):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT population_id \
           FROM population \
-          WHERE population_name = '{population.n}' AND \
-                population_species = {population.s}"
+          WHERE population_name = %s AND \
+                population_species = %s"
+  args_tuple = (population.n, population.s)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args_tuple)
   if known_id is not None:
     conn.commit()
     cur.close()
@@ -112,7 +116,6 @@ def insert_population(conn, args, population):
         VALUES (%s, %s)
         ON CONFLICT DO NOTHING
         RETURNING population_id;"""
-  args_tuple = (population.n, population.s)
   cur.execute(SQL, args_tuple)
   row = cur.fetchone()
   if row is not None:
@@ -141,10 +144,11 @@ def insert_chromosome(conn, args, chromosome):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT chromosome_id \
           FROM chromosome \
-          WHERE chromosome_name = '{chromosome.n}' AND \
-                chromosome_species = {chromosome.s}"
+          WHERE chromosome_name = %s AND \
+                chromosome_species = %s"
+  args_tuple = (chromosome.n, chromosome.s)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args_tuple)
   if known_id is not None:
     conn.commit()
     cur.close()
@@ -155,7 +159,6 @@ def insert_chromosome(conn, args, chromosome):
         VALUES (%s, %s)
         ON CONFLICT DO NOTHING
         RETURNING chromosome_id;"""
-  args_tuple = (chromosome.n, chromosome.s)
   try:
     cur.execute(SQL, args_tuple)
   except pg.Error as err:
@@ -212,10 +215,11 @@ def insert_line(conn, args, line):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT line_id \
           FROM line \
-          WHERE line_name = '{line.n}' AND \
-                line_population = {line.p}"
+          WHERE line_name = %s AND \
+                line_population = %s"
+  args_tuple = (line.n, line.p)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args_tuple)
   if known_id is not None:
     conn.commit()
     cur.close()
@@ -225,7 +229,6 @@ def insert_line(conn, args, line):
         VALUES (%s, %s)
         ON CONFLICT DO NOTHING
         RETURNING line_id;"""
-  args_tuple = (line.n, line.p)
   cur.execute(SQL, args_tuple)
   row = cur.fetchone()
   if row is not None:
@@ -280,14 +283,14 @@ def insert_variant(conn, args, variant):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT variant_id \
           FROM variant \
-          WHERE variant_species = {variant.s} AND \
-                variant_chromosome = {variant.c} AND \
-                variant_pos = {variant.p}"
+          WHERE variant_species = %s AND \
+                variant_chromosome = %s AND \
+                variant_pos = %s"
+  args_tuple = (variant.s, variant.c, variant.p)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args_tuple)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Variant found] {variant}')
+    logging.debug(f'[Variant found] {variant}')
     conn.commit()
     cur.close()
     return known_id
@@ -296,7 +299,6 @@ def insert_variant(conn, args, variant):
         VALUES (%s,%s,%s)
         ON CONFLICT DO NOTHING
         RETURNING variant_id;"""
-  args_tuple = (variant.s, variant.c, variant.p)
   cur.execute(SQL, args_tuple)
   #newID = cur.fetchone()[0]
   row = cur.fetchone()
@@ -352,14 +354,14 @@ def insert_genotype(conn, args, genotype):
   # See if the genotype has already been inserted, and if so, return it
   SQL = f"SELECT genotype_id \
           FROM genotype \
-          WHERE genotype_line = {genotype.l} AND \
-                genotype_chromosome = {genotype.c} AND \
-                genotype_genotype_version = '{genotype.v}'"
-  
-  known_id = exists_in_database(cur, SQL)
+          WHERE genotype_line = %s AND \
+                genotype_chromosome = %s AND \
+                genotype_genotype_version = %s"
+  args = (genotype.l, genotype.c, genotype.v)
+
+  known_id = exists_in_database(cur, SQL, args)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Genotype found] ({genotype.l}, {genotype.c}, {genotype.v})')
+    logging.debug(f'[Genotype found] ({genotype.l}, {genotype.c}, {genotype.v})')
     conn.commit()
     cur.close()
     return known_id
@@ -488,14 +490,14 @@ def insert_phenotype(conn, args, phenotype):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT phenotype_id \
           FROM phenotype \
-          WHERE phenotype_line = {phenotype.l} AND \
-                phenotype_trait = {phenotype.t} AND \
-                LOWER(phenotype_value) = '{phenotype.v}'" # Lower needed to deal with SQL's representation of NaN ('NaN') and Python's ('nan')
+          WHERE phenotype_line = %s AND \
+                phenotype_trait = %s AND \
+                LOWER(phenotype_value) = %s" # Lower needed to deal with SQL's representation of NaN ('NaN') and Python's ('nan')
+  args_tuple = (phenotype.l, phenotype.t, phenotype.v)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args_tuple)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Phenotype found] {phenotype}')
+    logging.debug(f'[Phenotype found] {phenotype}')
     conn.commit()
     cur.close()
     return known_id
@@ -504,7 +506,6 @@ def insert_phenotype(conn, args, phenotype):
         VALUES (%s, %s, %s)
         ON CONFLICT DO NOTHING
         RETURNING phenotype_id;"""
-  args_tuple = (phenotype.l, phenotype.t, phenotype.v)
   try:
     cur.execute(SQL, args_tuple)
   except pg.Error as err:
@@ -567,12 +568,12 @@ def insert_trait(conn, args, trait):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT trait_id \
           FROM trait \
-          WHERE trait_name = '{trait.n}'"
+          WHERE trait_name = %s"
+  arg = (trait.n,)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, arg)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Trait found] {trait}')
+    logging.debug(f'[Trait found] {trait}')
     conn.commit()
     cur.close()
     return known_id
@@ -581,7 +582,6 @@ def insert_trait(conn, args, trait):
         VALUES (%s)
         ON CONFLICT DO NOTHING
         RETURNING trait_id;"""
-  arg = (trait.n,)
   cur.execute(SQL, arg)
   row = cur.fetchone()
   if row is not None:
@@ -663,12 +663,12 @@ def insert_gwas_algorithm(conn, args, gwas_algorithm):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT gwas_algorithm_id \
           FROM gwas_algorithm \
-          WHERE gwas_algorithm = '{gwas_algorithm.a}'"
+          WHERE gwas_algorithm = %s"
+  args = (gwas_algorithm.a,)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Genotype algorithm found] {gwas_algorithm}')
+    logging.debug(f'[Genotype algorithm found] {gwas_algorithm}')
     conn.commit()
     cur.close()
     return known_id
@@ -677,7 +677,6 @@ def insert_gwas_algorithm(conn, args, gwas_algorithm):
         VALUES (%s)
         ON CONFLICT DO NOTHING
         RETURNING gwas_algorithm_id;"""
-  args = (gwas_algorithm.a,)
   cur.execute(SQL, args)
   row = cur.fetchone()
   if row is not None:
@@ -707,15 +706,15 @@ def insert_genotype_version(conn, args, genotype_version):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT genotype_version_id \
           FROM genotype_version \
-          WHERE genotype_version_assembly_name = '{genotype_version.n}' AND \
-                genotype_version_annotation_name = '{genotype_version.v}' AND \
-                reference_genome = {genotype_version.r} AND \
-                genotype_version_population = {genotype_version.p}"
+          WHERE genotype_version_assembly_name = %s AND \
+                genotype_version_annotation_name = %s AND \
+                reference_genome = %s AND \
+                genotype_version_population = %s"
+  args_tuple = (genotype_version.n, genotype_version.v, genotype_version.r, genotype_version.p)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args_tuple)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Genotype version found] {genotype_version}')
+    logging.debug(f'[Genotype version found] {genotype_version}')
     conn.commit()
     cur.close()
     return known_id
@@ -725,7 +724,6 @@ def insert_genotype_version(conn, args, genotype_version):
         ON CONFLICT DO NOTHING
         RETURNING genotype_version_id;"""
   # print("Genotype Version: " + str(genotype_version))
-  args_tuple = (genotype_version.n, genotype_version.v, genotype_version.r, genotype_version.p)
   cur.execute(SQL, args_tuple)
   row = cur.fetchone()
   if row is not None:
@@ -755,12 +753,12 @@ def insert_imputation_method(conn, args, imputation_method):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT imputation_method_id \
           FROM imputation_method \
-          WHERE imputation_method = '{imputation_method.m}'"
+          WHERE imputation_method = %s"
+  args = (imputation_method.m,)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Imputation method found] {imputation_method}')
+    logging.debug(f'[Imputation method found] {imputation_method}')
     conn.commit()
     cur.close()
     return known_id
@@ -769,7 +767,6 @@ def insert_imputation_method(conn, args, imputation_method):
         VALUES (%s)
         ON CONFLICT DO NOTHING
         RETURNING imputation_method_id;"""
-  args = (imputation_method.m,)
   cur.execute(SQL, args)
   row = cur.fetchone()
   if row is not None:
@@ -799,12 +796,12 @@ def insert_kinship_algorithm(conn, args, kinship_algorithm):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT kinship_algorithm_id \
           FROM kinship_algorithm \
-          WHERE kinship_algorithm = '{kinship_algorithm.a}'"
+          WHERE kinship_algorithm = %s"
+  args = (kinship_algorithm.a,)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Kinship algorithm found] {kinship_algorithm}')
+    logging.debug(f'[Kinship algorithm found] {kinship_algorithm}')
     conn.commit()
     cur.close()
     return known_id
@@ -813,7 +810,6 @@ def insert_kinship_algorithm(conn, args, kinship_algorithm):
         VALUES (%s)
         ON CONFLICT DO NOTHING
         RETURNING kinship_algorithm_id;"""
-  args = (kinship_algorithm.a,)
   cur.execute(SQL, args)
   row = cur.fetchone()
   if row is not None:
@@ -843,13 +839,13 @@ def insert_kinship(conn, args, kinship):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT kinship_id \
           FROM kinship \
-          WHERE kinship_algorithm = '{kinship.a}' AND \
-                kinship_file_path = '{kinship.p}'"
+          WHERE kinship_algorithm = %s AND \
+                kinship_file_path = %s"
+  args = (kinship.a, kinship.p)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Kinship found] {kinship}')
+    logging.debug(f'[Kinship found] {kinship}')
     conn.commit()
     cur.close()
     return known_id
@@ -858,7 +854,6 @@ def insert_kinship(conn, args, kinship):
         VALUES (%s,%s)
         ON CONFLICT DO NOTHING
         RETURNING kinship_id;"""
-  args = (kinship.a, kinship.p)
   cur.execute(SQL, args)
   row = cur.fetchone()
   if row is not None:
@@ -887,12 +882,12 @@ def insert_population_structure_algorithm(conn, args, population_structure_algor
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT population_structure_algorithm_id \
           FROM population_structure_algorithm \
-          WHERE population_structure_algorithm = '{population_structure_algorithm.a}'"
+          WHERE population_structure_algorithm = %s"
+  args = (population_structure_algorithm.a,)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Population structure algorithm found] {population_structure_algorithm}')
+    logging.debug(f'[Population structure algorithm found] {population_structure_algorithm}')
     conn.commit()
     cur.close()
     return known_id
@@ -901,7 +896,6 @@ def insert_population_structure_algorithm(conn, args, population_structure_algor
         VALUES (%s)
         ON CONFLICT DO NOTHING
         RETURNING population_structure_algorithm_id;"""
-  args = (population_structure_algorithm.a,)
   cur.execute(SQL, args)
   row = cur.fetchone()
   if row is not None:
@@ -931,13 +925,13 @@ def insert_population_structure(conn, args, population_structure):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT population_structure_id \
           FROM population_structure \
-          WHERE population_structure_algorithm = '{population_structure.a}' AND \
-                population_structure_file_path = '{population_structure.p}'"
+          WHERE population_structure_algorithm = %s AND \
+                population_structure_file_path = %s"
+  args = (population_structure.a, population_structure.p)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[Population structure found] {population_structure}')
+    logging.debug(f'[Population structure found] {population_structure}')
     conn.commit()
     cur.close()
     return known_id
@@ -946,7 +940,6 @@ def insert_population_structure(conn, args, population_structure):
         VALUES (%s,%s)
         ON CONFLICT DO NOTHING
         RETURNING population_structure_id;"""
-  args = (population_structure.a, population_structure.p)
   cur.execute(SQL, args)
   row = cur.fetchone()
   if row is not None:
@@ -976,31 +969,41 @@ def insert_gwas_run(conn, args, gwas_run):
   # See if data has already been inserted, and if so, return it
   SQL = f"SELECT gwas_run_id \
           FROM gwas_run \
-          WHERE gwas_run_trait = {gwas_run.t} AND \
-                nsnps = {gwas_run.s} AND \
-                nlines = {gwas_run.l} AND \
-                gwas_run_gwas_algorithm = {gwas_run.a} AND \
-                gwas_run_genotype_version = {gwas_run.v} AND \
-                missing_snp_cutoff_value = {gwas_run.m} AND \
-                missing_line_cutoff_value = {gwas_run.i} AND \
-                minor_allele_frequency_cutoff_value = {gwas_run.n} AND \
-                gwas_run_imputation_method = {gwas_run.p} AND \
-                gwas_run_kinship = {gwas_run.k} AND \
-                gwas_run_population_structure = {gwas_run.o}"
+          WHERE gwas_run_trait = %s AND \
+                nsnps = %s AND \
+                nlines = %s AND \
+                gwas_run_gwas_algorithm = %s AND \
+                gwas_run_genotype_version = %s AND \
+                missing_snp_cutoff_value = %s AND \
+                missing_line_cutoff_value = %s AND \
+                minor_allele_frequency_cutoff_value = %s AND \
+                gwas_run_imputation_method = %s AND \
+                gwas_run_kinship = %s AND \
+                gwas_run_population_structure = %s"
+  args = (gwas_run.t, gwas_run.s, gwas_run.l, gwas_run.a, gwas_run.v, gwas_run.m, gwas_run.i, gwas_run.n, gwas_run.p, gwas_run.k, gwas_run.o)
   
-  known_id = exists_in_database(cur, SQL)
+  known_id = exists_in_database(cur, SQL, args)
   if known_id is not None:
-    if args.verbose is True:
-      print(f'[GWAS run found] {gwas_run}')
+    logging.debug(f'[GWAS run found] {gwas_run}')
     conn.commit()
     cur.close()
     return known_id
 
-  SQL = """INSERT INTO gwas_run(gwas_run_trait, nsnps, nlines, gwas_run_gwas_algorithm, gwas_run_genotype_version, missing_snp_cutoff_value, missing_line_cutoff_value, minor_allele_frequency_cutoff_value, gwas_run_imputation_method, gwas_run_kinship, gwas_run_population_structure)
+  SQL = """INSERT INTO gwas_run(gwas_run_trait, \
+                                nsnps, \
+                                nlines, \
+                                gwas_run_gwas_algorithm, \
+                                gwas_run_genotype_version, \
+                                missing_snp_cutoff_value, \
+                                missing_line_cutoff_value, \
+                                minor_allele_frequency_cutoff_value, \
+                                gwas_run_imputation_method, \
+                                gwas_run_kinship, \
+                                gwas_run_population_structure)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         RETURNING gwas_run_id;"""
-  args = (gwas_run.t, gwas_run.s, gwas_run.l, gwas_run.a, gwas_run.v, gwas_run.m, gwas_run.i, gwas_run.n, gwas_run.p, gwas_run.k, gwas_run.o)
+  logging.debug(args)
   cur.execute(SQL, args)
   row = cur.fetchone()
   if row is not None:
@@ -1036,7 +1039,17 @@ def insert_gwas_runs_from_gwas_results_file(conn, args, gwas_results_file, gwasR
   insertedGwasRunIDs = []
   for gwas_run_item in tqdm(gwas_run_list, desc="GWAS Runs"):
     traitID = find.find_trait(conn, args, gwas_run_item[0])
-    gwas_run_obj = gwas_run(traitID, gwas_run_item[1], gwas_run_item[2], gwasRunAlgorithmID, gwasRunGenotypeVersionID, missing_snp_cutoff_value, missing_line_cutoff_value, minor_allele_frequency_cutoff_value, gwasRunImputationMethodID, gwasRunKinshipID, gwasRunPopulationStructureID)
+    gwas_run_obj = gwas_run(traitID,
+                            gwas_run_item[1],
+                            gwas_run_item[2],
+                            gwasRunAlgorithmID,
+                            gwasRunGenotypeVersionID,
+                            missing_snp_cutoff_value,
+                            missing_line_cutoff_value,
+                            minor_allele_frequency_cutoff_value,
+                            gwasRunImputationMethodID,
+                            gwasRunKinshipID,
+                            gwasRunPopulationStructureID)
     insertedGwasRunID = insert_gwas_run(conn, args, gwas_run_obj)
     insertedGwasRunIDs.append(insertedGwasRunID)
   return insertedGwasRunIDs
@@ -1056,11 +1069,29 @@ def insert_gwas_result(conn, args, gwas_result):
     int: GWAS result id
   """
   cur = conn.cursor()
-  SQL = """INSERT INTO gwas_result(gwas_result_chromosome, basepair, gwas_result_gwas_run, pval, cofactor, _order, null_pval, model_added_pval, model, pcs)
+  SQL = """INSERT INTO gwas_result(gwas_result_chromosome, \
+                                   basepair, \
+                                   gwas_result_gwas_run, \
+                                   pval, \
+                                   cofactor, \
+                                   _order, \
+                                   null_pval, \
+                                   model_added_pval, \
+                                   model, \
+                                   pcs)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         RETURNING gwas_result_id;"""
-  args = (gwas_result.c, gwas_result.b, gwas_result.r, gwas_result.p, gwas_result.o, gwas_result.d, gwas_result.n, gwas_result.a, gwas_result.m, gwas_result.s)
+  args = (gwas_result.c,
+          gwas_result.b,
+          gwas_result.r,
+          gwas_result.p,
+          gwas_result.o,
+          gwas_result.d,
+          gwas_result.n,
+          gwas_result.a,
+          gwas_result.m,
+          gwas_result.s)
   cur.execute(SQL, args)
   row = cur.fetchone()
   if row is not None:
@@ -1098,10 +1129,28 @@ def insert_gwas_results_from_file(conn, args, speciesID, gwas_results_file, gwas
   df = pd.read_csv(gwas_results_file)
   for _, row in tqdm(df.iterrows(), total=df.shape[0], desc="GWAS Results"):
     trait = row['trait']
-    nSNPs = row['nSNPs'] or None
-    nLines = row['nLinesnLinesnLinesnLines'] or None
+    # In case either nSNPs or nLines are not defined, make them none
+    nSNPs = None
+    nLines = None
+    if 'nSNPs' in df.columns:
+      nSNPs = row['nSNPs']
+    if 'nLines' in df.columns:
+      nLines = row['nLines']
+
     traitID = find.find_trait(conn, args, trait)
-    gwas_run_ID = find.find_gwas_run(conn, args, gwas_algorithm_ID, missing_snp_cutoff_value, missing_line_cutoff_value, imputationMethodID, traitID, nSNPs, nLines, genotypeVersionID, kinshipID, populationStructureID, minor_allele_frequency_cutoff_value)
+    gwas_run_ID = find.find_gwas_run(conn, 
+                                     args,
+                                     gwas_algorithm_ID,
+                                     missing_snp_cutoff_value,
+                                     missing_line_cutoff_value,
+                                     imputationMethodID,
+                                     traitID,
+                                     nSNPs,
+                                     nLines,
+                                     genotypeVersionID,
+                                     kinshipID,
+                                     populationStructureID,
+                                     minor_allele_frequency_cutoff_value)
     snp = row['SNP']
     snp_list = snp.split("_")
     chromosome = snp_list[0]
@@ -1116,11 +1165,16 @@ def insert_gwas_results_from_file(conn, args, speciesID, gwas_results_file, gwas
     elif np.isnan(pcs):
       pcs_list = None
  
-    new_gwas_result = gwas_result(chromosomeID, basepair, gwas_run_ID, row['pval'], row['cofactor'], row['order'], row['nullPval'], row['modelAddedPval'], row['model'], pcs_list)
-    # if new_gwas_result:
-    #   print("GWAS result entry successfully imported.")
-    # else:
-    #   print("GWAS result entry import FAILED.")
+    new_gwas_result = gwas_result(chromosomeID,
+                                  basepair,
+                                  gwas_run_ID,
+                                  row['pval'],
+                                  row['cofactor'],
+                                  row['order'],
+                                  row['nullPval'],
+                                  row['modelAddedPval'],
+                                  row['model'],
+                                  pcs_list)
     new_gwas_result_ID = insert_gwas_result(conn, args, new_gwas_result)
     new_gwas_result_IDs.append(new_gwas_result_ID)
   return new_gwas_result_IDs

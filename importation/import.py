@@ -86,6 +86,7 @@ import configparser
 import csv
 import errno
 import json
+import logging
 import os
 import sys
 from pprint import pprint
@@ -187,7 +188,7 @@ def process(args):
     if empty_fields:
       raise KeyError(f'The following keys must be defined. Empty strings are not permitted. Please modify your JSON configuration: {empty_fields}')
 
-    print(f'Configuration file is valid. Verifying that all files exist.')
+    logging.info('Configuration file is valid. Verifying that all files exist.')
 
     # Verify that all files exist
     # Lines
@@ -228,9 +229,8 @@ def process(args):
         if configuration_entry in [ 'phenotype_filename', 'gwas_run_filename', 'gwas_results_filename' ]:
           locations.append(dict(cwd=args.working_directory, filename=dp['phenotype_filename']))
 
-    if args.debug:
-      print(f'All file locations:')
-      pprint(locations)
+    logging.debug(f'All file locations:')
+    logging.debug(locations)
 
     for file_descriptor in locations:
       file_path = generic_filename.substitute(file_descriptor)
@@ -240,7 +240,7 @@ def process(args):
   except:
     raise
   
-  print(f'Found all files. Processing import.')
+  logging.info(f'Found all files. Processing import.')
 
   # =======================================
   # ========== Experiment Design ==========
@@ -300,12 +300,10 @@ def process(args):
   # Population
   p = population(population_name, species_id)
   population_id = insert.insert_population(conn, args, p)
-  if args.verbose:
-    print(f'[Insert]\tPopulation ID\t{population_id}')
+  logging.debug(f'[Insert]\tPopulation ID\t{population_id}')
   # Chromosome
   chromosome_ids = insert.insert_all_chromosomes_for_species(conn, args, chromosome_count, species_id)
-  if args.verbose:
-    print(f'[Insert]\tChromosome IDs\t{chromosome_ids}')
+  logging.debug(f'[Insert]\tChromosome IDs\t{chromosome_ids}')
   # Line
   working_filepath = lines_filename.substitute(dict(chr="chr1", cwd=f"{args.working_directory}", shortname=species_shortname))
   try:
@@ -315,19 +313,16 @@ def process(args):
     raise
 
   line_ids = insert.insert_lines_from_file(conn, args, working_filepath, population_id) # hard-coded substitue until just one file is used for lines
-  if args.verbose:
-    print(f'[Insert]\tLine IDs\t{line_ids}')
+  logging.debug(f'[Insert]\tLine IDs\t{line_ids}')
   # Genotype Version
   reference_genome_id = find.find_line(conn, args, reference_genome_line_name, population_id)
-  if args.verbose:
-    print(f'[Insert]\Reference Genome ID\t{reference_genome_id}')
+  logging.debug(f'[Insert]\Reference Genome ID\t{reference_genome_id}')
   gv = genotype_version(genotype_version_assembly_name,
                         genotype_version_annotation_name,
                         reference_genome = reference_genome_id,
                         genotype_version_population = population_id)
   genotype_version_id = insert.insert_genotype_version(conn, args, gv)
-  if args.verbose:
-    print(f'[Insert]\tGenome Version ID\t{genotype_version_id}')
+  logging.debug(f'[Insert]\tGenome Version ID\t{genotype_version_id}')
   
   # Growout, Type, and Location
   # NOTE(tparker): Unknown at this time
@@ -346,8 +341,7 @@ def process(args):
       raise
     traits = list(pd.read_csv(phenotype_filepath, index_col=0))
     trait_ids = insert.insert_traits_from_traitlist(conn, args, traits, phenotype_filepath)
-    if args.verbose:
-      print(f'[Insert]\tTrait IDs for {phenotype_filepath}\t{trait_ids}')
+    logging.debug(f'[Insert]\tTrait IDs for {phenotype_filepath}\t{trait_ids}')
   
   # # =====================================
   # # ========== Pipeline Design ==========
@@ -408,9 +402,8 @@ def process(args):
     except:
       raise
     phenotype_ids = insert.insert_phenotypes_from_file(conn, args, phenotype_filepath, population_id, phenotype_filepath)
-    if args.verbose:
-      print(f'[Insert]\tPhenotype IDs for {phenotype_filepath}\t{phenotype_ids}')
-
+    logging.debug(f'[Insert]\tPhenotype IDs for {phenotype_filepath}\t{phenotype_ids}')
+      
   # Genotype
   for c in range(1, chromosome_count + 1):
     chromosome_shortname = 'chr' + str(c)
@@ -592,9 +585,14 @@ def parseOptions():
   if args.log is True:
     args.log_file = f'{os.path.basename(__file__)}'
 
+  logging_level = logging.INFO
+
   if args.debug:
-    pprint(args)
+    logging_level = logging.DEBUG
   
+  logging_format = '%(asctime)s - %(levelname)s - %(message)s'
+  logging.basicConfig(format=logging_format, level=logging_level)
+
   return args
 
 if __name__ == "__main__":

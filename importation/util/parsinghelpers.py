@@ -1,6 +1,7 @@
 import pandas as pd
 import csv
-import util.find as find
+import importation.util.find as find
+import logging
 
 def generate_chromosome_list(numChromosomes):
   """Generates list of chromosomes from numeric list of chromsomes
@@ -141,7 +142,18 @@ def parse_unique_runs_from_gwas_results_file(filepath):
   df = pd.read_csv(filepath)
   for index, row in df.iterrows():
     # Ignore duplicate entries based on trait, number of SNPs, and number of lines.
-    gwas_run = [row['trait'],row['nSNPs'],row['nLines']]
+    
+    # NOTE(tparker): Because the nSNPs & nLines are not required fields for a GWAS run/result
+    #                This code is to deal with attempting to extract values that do not exist
+    #                in the results/run file (.csv)
+    keys_of_interest = [ 'trait', 'nSNPs', 'nLines' ]
+    gwas_run = []
+    for k in keys_of_interest:
+      if k in df.columns:
+        gwas_run.append(row[k])
+      else:
+        gwas_run.append(None)
+
     if gwas_run not in gwas_runs:
       gwas_runs.append(gwas_run)
   return gwas_runs

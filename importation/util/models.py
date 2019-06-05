@@ -362,8 +362,8 @@ class gwas_run(AutoRepr):
 
   Args:
     gwas_run_trait (int): *required.* references :ref:`trait_id <trait_class>`
-    nsnps (int): *required.* number of SNPs
-    nlines (int): *required.* number of lines
+    nsnps (int): *required.* number of SNPs that were included in the  GWAS run, this may be fewer than those available in the data set
+    nlines (int): *required.* number of lines that were included in the GWAS run, this may be fewer than those available in the data set
     gwas_run_gwas_algorithm (int): *required.* references :ref:`gwas_algorithm_id <gwas_algorithm_class>`
     gwas_run_genotype_version (int): *required.* references :ref:`genotype_version_id <genotype_version_class>`
     missing_snp_cutoff_value (numeric): *required.* SNP cutoff value for 
@@ -398,6 +398,27 @@ class gwas_run(AutoRepr):
     self.k = gwas_run_kinship
     self.o = gwas_run_population_structure
 
+    # Initialize a dictionary version of the object for iteration
+    self.d = {}
+    attributes = [ 't','s','l','a','v','m','i','n','p','k','o' ]
+    for a in range(len(attributes)):
+      self.d[a] = getattr(self, attributes[a])
+
+  # Adding an iterator to allow me to replace None values with NULL for
+  # converting from Python object to SQL statements
+  def __iter__(self):
+    for key,item in self.d.items():
+      yield key,item
+
+  def keys(self):
+    return self.d.keys()
+
+  def items(self):
+    return self.d.items()
+
+  def values(self):
+    return self.d.values()
+
 class gwas_result(AutoRepr):
   """:abbr:`GWAS(Genome-wide association studies)` Resultf class
 
@@ -430,7 +451,17 @@ class gwas_result(AutoRepr):
       - pcs (???) - in the Maize282, there are 18 different permutations of the pcs, comprised of 1-3 integers. Are they the chromosome found significant?
 
   """
-  def __init__(self, gwas_result_chromosome, basepair, gwas_result_gwas_run, pval, cofactor, _order, null_pval, model_added_pval, model, pcs):
+  def __init__(self,
+               gwas_result_chromosome,
+               basepair,
+               gwas_result_gwas_run,
+               pval,
+               cofactor,
+               _order,
+               null_pval,
+               model_added_pval,
+               model,
+               pcs):
     self.c = gwas_result_chromosome
     self.b = basepair
     self.r = gwas_result_gwas_run
