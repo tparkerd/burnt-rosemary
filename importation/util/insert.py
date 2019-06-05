@@ -6,9 +6,9 @@ import pandas as pd
 import psycopg2 as pg
 from tqdm import tqdm
 
-import util.find as find
-import util.parsinghelpers as ph
-from util.models import (chromosome, genotype, genotype_version, growout,
+import importation.util.find as find
+import importation.util.parsinghelpers as ph
+from importation.util.models import (chromosome, genotype, genotype_version, growout,
                          growout_type, gwas_algorithm, gwas_result, gwas_run,
                          imputation_method, kinship, kinship_algorithm, line,
                          location, phenotype, population, population_structure,
@@ -327,7 +327,7 @@ def insert_variants_from_file(conn, args, variantPosFile, speciesID, chromosomeI
   variantlist = ph.parse_variants_from_file(variantPosFile)
   cVariants = len(variantlist)
   insertedVariantIDs = []
-  for variantpos in tqdm(variantlist, desc="Variants from %s" % variantPosFile):
+  for variantpos in tqdm(variantlist, desc="Variants from %s" % variantPosFile, total=cVariants):
     variantobj = variant(speciesID, chromosomeID, variantpos)
     insertedVariantID = insert_variant(conn, args, variantobj)
     insertedVariantIDs.append(insertedVariantID)
@@ -1096,10 +1096,12 @@ def insert_gwas_results_from_file(conn, args, speciesID, gwas_results_file, gwas
   """
   new_gwas_result_IDs = []
   df = pd.read_csv(gwas_results_file)
-  for index, row in tqdm(df.iterrows(), total=df.shape[0], desc="GWAS Results"):
+  for _, row in tqdm(df.iterrows(), total=df.shape[0], desc="GWAS Results"):
     trait = row['trait']
+    nSNPs = row['nSNPs'] or None
+    nLines = row['nLinesnLinesnLinesnLines'] or None
     traitID = find.find_trait(conn, args, trait)
-    gwas_run_ID = find.find_gwas_run(conn, args, gwas_algorithm_ID, missing_snp_cutoff_value, missing_line_cutoff_value, imputationMethodID, traitID, row['nSNPs'], row['nLines'], genotypeVersionID, kinshipID, populationStructureID, minor_allele_frequency_cutoff_value)
+    gwas_run_ID = find.find_gwas_run(conn, args, gwas_algorithm_ID, missing_snp_cutoff_value, missing_line_cutoff_value, imputationMethodID, traitID, nSNPs, nLines, genotypeVersionID, kinshipID, populationStructureID, minor_allele_frequency_cutoff_value)
     snp = row['SNP']
     snp_list = snp.split("_")
     chromosome = snp_list[0]
