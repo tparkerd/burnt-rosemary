@@ -330,7 +330,6 @@ def insert_variants_from_file(conn, args, variantPosFile, speciesID, chromosomeI
   cVariants = len(variantlist)
   insertedVariantIDs = []
   for variantpos in tqdm(variantlist, desc="Variants from %s" % variantPosFile, total=cVariants):
-    continue
     variantobj = variant(speciesID, chromosomeID, variantpos)
     insertedVariantID = insert_variant(conn, args, variantobj)
     insertedVariantIDs.append(insertedVariantID)
@@ -539,7 +538,6 @@ def insert_phenotypes_from_file(conn, args, phenotype_filename, population_id, f
   df = pd.read_csv(phenotype_filename, index_col=0)
   phenotype_ids = []
   for key, value in tqdm(df.iteritems(), total=len(df.columns), desc=f"Phenotypes from {filename}"):
-    continue
     trait_id = find.find_trait(conn, args, key)
     for line_name, traitval in value.iteritems():
       line_id = find.find_line(conn, args, line_name, population_id)
