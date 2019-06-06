@@ -403,7 +403,7 @@ def process(args):
       raise
     phenotype_ids = insert.insert_phenotypes_from_file(conn, args, phenotype_filepath, population_id, phenotype_filepath)
     logging.debug(f'[Insert]\tPhenotype IDs for {phenotype_filepath}\t{phenotype_ids}')
-      
+
   # Genotype
   for c in range(1, chromosome_count + 1):
     chromosome_shortname = 'chr' + str(c)
@@ -590,7 +590,7 @@ def parseOptions():
   if args.debug:
     logging_level = logging.DEBUG
   
-  logging_format = '%(asctime)s - %(levelname)s - %(message)s'
+  logging_format = '%(asctime)s - %(levelname)s - %(filename)s %(lineno)d - %(message)s'
   logging.basicConfig(format=logging_format, level=logging_level)
 
   return args

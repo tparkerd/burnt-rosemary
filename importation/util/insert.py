@@ -330,6 +330,7 @@ def insert_variants_from_file(conn, args, variantPosFile, speciesID, chromosomeI
   cVariants = len(variantlist)
   insertedVariantIDs = []
   for variantpos in tqdm(variantlist, desc="Variants from %s" % variantPosFile, total=cVariants):
+    continue
     variantobj = variant(speciesID, chromosomeID, variantpos)
     insertedVariantID = insert_variant(conn, args, variantobj)
     insertedVariantIDs.append(insertedVariantID)
@@ -538,6 +539,7 @@ def insert_phenotypes_from_file(conn, args, phenotype_filename, population_id, f
   df = pd.read_csv(phenotype_filename, index_col=0)
   phenotype_ids = []
   for key, value in tqdm(df.iteritems(), total=len(df.columns), desc=f"Phenotypes from {filename}"):
+    continue
     trait_id = find.find_trait(conn, args, key)
     for line_name, traitval in value.iteritems():
       line_id = find.find_line(conn, args, line_name, population_id)
@@ -1092,7 +1094,11 @@ def insert_gwas_result(conn, args, gwas_result):
           gwas_result.a,
           gwas_result.m,
           gwas_result.s)
-  cur.execute(SQL, args)
+  try:
+    cur.execute(SQL, args)
+  except:
+    logging.error("GWAS Result Input: %s", args)
+    raise
   row = cur.fetchone()
   if row is not None:
     newID = row[0]
@@ -1103,7 +1109,18 @@ def insert_gwas_result(conn, args, gwas_result):
     return None
 
 
-def insert_gwas_results_from_file(conn, args, speciesID, gwas_results_file, gwas_algorithm_ID, missing_snp_cutoff_value, missing_line_cutoff_value, imputationMethodID, genotypeVersionID, kinshipID, populationStructureID, minor_allele_frequency_cutoff_value):
+def insert_gwas_results_from_file(conn,
+                                  args,
+                                  speciesID,
+                                  gwas_results_file,
+                                  gwas_algorithm_ID,
+                                  missing_snp_cutoff_value,
+                                  missing_line_cutoff_value,
+                                  imputationMethodID,
+                                  genotypeVersionID,
+                                  kinshipID,
+                                  populationStructureID,
+                                  minor_allele_frequency_cutoff_value):
   """Inserts a collection of GWAS results from a file into database
 
   This function inserts a collection of GWAS results from a file into a database
@@ -1115,7 +1132,7 @@ def insert_gwas_results_from_file(conn, args, speciesID, gwas_results_file, gwas
     gwas_results_file (str): absolute path to input file
     gwas_algorithm_ID (int): :ref:`gwas_algorithm_id <gwas_algorithm_class>`
     missing_snp_cutoff_value (numeric):
-    missing_line_cutoff_value (numeric):
+    missing_line_cutoff_value (numeric):`
     imputationMethodID (int): :ref:`imputation_method_id <imputation_method_class>`
     genotypeVersionID (int): :ref:`genotype_version_id <genotype_version_class>`
     kinshipID (int): :ref:`kinship_id <kinship_class>`
@@ -1151,19 +1168,27 @@ def insert_gwas_results_from_file(conn, args, speciesID, gwas_results_file, gwas
                                      kinshipID,
                                      populationStructureID,
                                      minor_allele_frequency_cutoff_value)
+    logging.debug("Found run ID: %s", gwas_run_ID)
+
     snp = row['SNP']
-    snp_list = snp.split("_")
-    chromosome = snp_list[0]
+    chromosome = row['chr']
     chromosome = "chr"+str(chromosome)
     chromosomeID = find.find_chromosome(conn, args, chromosome, speciesID)
-    basepair = snp_list[1]
+    basepair = row['chr']
     
-    pcs = row['PCs']
-    if type(pcs) == str:
-      pcs_list = pcs.split(":")
-      pcs_list = [int(x) for x in pcs_list]
-    elif np.isnan(pcs):
+    if 'PCs' in df.columns:
+      pcs = row['PCs']
+      if type(pcs) == str:
+        pcs_list = pcs.split(":")
+        pcs_list = [int(x) for x in pcs_list]
+      elif np.isnan(pcs):
+        pcs_list = None
+    else:
       pcs_list = None
+
+    modelAddedPval = None
+    if 'modelAddedPval' in df.columns:
+      modelAddedPval = row['modelAddedPval']
  
     new_gwas_result = gwas_result(chromosomeID,
                                   basepair,
@@ -1172,7 +1197,7 @@ def insert_gwas_results_from_file(conn, args, speciesID, gwas_results_file, gwas
                                   row['cofactor'],
                                   row['order'],
                                   row['nullPval'],
-                                  row['modelAddedPval'],
+                                  modelAddedPval,
                                   row['model'],
                                   pcs_list)
     new_gwas_result_ID = insert_gwas_result(conn, args, new_gwas_result)

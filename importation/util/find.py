@@ -1,13 +1,14 @@
 """Looks up IDs of various elements in the database"""
 import csv
+import logging
 
 import numpy as np
 import pandas as pd
 import psycopg2
 
-import util.insert
-from util.dbconnect import config, connect
-from util.models import (chromosome, genotype, genotype_version, growout,
+import importation.util.insert
+from importation.util.dbconnect import config, connect
+from importation.util.models import (chromosome, genotype, genotype_version, growout,
                          growout_type, gwas_algorithm, gwas_result, gwas_run,
                          imputation_method, kinship, kinship_algorithm, line,
                          location, phenotype, population, population_structure,
@@ -75,7 +76,12 @@ def find_chromosome(conn, args, chromosome_name, chromosome_species):
   cur = conn.cursor()
   # not sure if next line is correct...
   # TODO(timp): Check if this line meets functional requirements
-  cur.execute("SELECT chromosome_id FROM chromosome WHERE chromosome_name = %s AND chromosome_species = %s;" , (chromosome_name, chromosome_species))
+  sql = "SELECT chromosome_id \
+               FROM chromosome \
+               WHERE chromosome_name = %s \
+               AND chromosome_species = %s;"
+  params = (chromosome_name, chromosome_species)
+  cur.execute(sql, params)
   row = cur.fetchone()
   if row is not None:
     chromosomeID = row[0]
@@ -395,29 +401,33 @@ def find_gwas_run(conn,
 
   """
   cur = conn.cursor()
-  cur.execute("SELECT gwas_run_id FROM gwas_run WHERE gwas_run_gwas_algorithm = %s \
-                                                      AND missing_snp_cutoff_value = %s \
-                                                      AND missing_line_cutoff_value = %s \
-                                                      AND gwas_run_imputation_method = %s \
-                                                      AND gwas_run_trait = %s \
-                                                      AND nsnps = %s \
-                                                      AND nlines = %s \
-                                                      AND gwas_run_genotype_version = %s \
-                                                      AND gwas_run_kinship = %s \
-                                                      AND gwas_run_population_structure = %s\
-                                                      AND minor_allele_frequency_cutoff_value = %s;",
-                                                      (gwas_algorithm,
-                                                       missing_snp_cutoff_value,
-                                                       missing_line_cutoff_value,
-                                                       gwas_run_imputation_method,
-                                                       gwas_run_trait,
-                                                       nsnps,
-                                                       nlines,
-                                                       gwas_run_genotype_version,
-                                                       gwas_run_kinship,
-                                                       gwas_run_population_structure,
-                                                       minor_allele_frequency_cutoff_value)
-                                                       )
+  sql = "SELECT gwas_run_id FROM gwas_run WHERE gwas_run_gwas_algorithm = %s \
+         AND missing_snp_cutoff_value = %s \
+         AND missing_line_cutoff_value = %s \
+         AND gwas_run_imputation_method = %s \
+         AND gwas_run_trait = %s \
+         AND (nsnps = %s or nsnps is null) \
+         AND (nlines = %s or nlines is null) \
+         AND gwas_run_genotype_version = %s \
+         AND gwas_run_kinship = %s \
+         AND gwas_run_population_structure = %s\
+         AND minor_allele_frequency_cutoff_value = %s;"
+  args =  (gwas_algorithm,
+           missing_snp_cutoff_value,
+           missing_line_cutoff_value,
+           gwas_run_imputation_method,
+           gwas_run_trait,
+           nsnps,
+           nlines,
+           gwas_run_genotype_version,
+           gwas_run_kinship,
+           gwas_run_population_structure,
+           minor_allele_frequency_cutoff_value)
+
+  logging.debug(args)
+
+  cur.execute(sql, args)
+                                                     
   row = cur.fetchone()
   if row is not None:
     gwas_run_ID = row[0]
