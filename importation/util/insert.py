@@ -1038,10 +1038,10 @@ def insert_gwas_runs_from_gwas_results_file(conn, args, gwas_results_file, gwasR
   gwas_run_list = ph.parse_unique_runs_from_gwas_results_file(gwas_results_file)
   insertedGwasRunIDs = []
   for gwas_run_item in tqdm(gwas_run_list, desc="GWAS Runs"):
-    traitID = find.find_trait(conn, args, gwas_run_item[0])
+    traitID = find.find_trait(conn, args, gwas_run_item['trait'])
     gwas_run_obj = gwas_run(traitID,
-                            gwas_run_item[1],
-                            gwas_run_item[2],
+                            gwas_run_item['nSNPs'],
+                            gwas_run_item['nLines'],
                             gwasRunAlgorithmID,
                             gwasRunGenotypeVersionID,
                             missing_snp_cutoff_value,

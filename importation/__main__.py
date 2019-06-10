@@ -7,9 +7,9 @@ import sys
 import shutil
 import datetime
 import json
-import util.importutility as iu
-import util.find as find
-from util.dbconnect import connect
+import importation.util.importutility as iu
+import importation.util.find as find
+from importation.util.dbconnect import connect
 
 from pprint import pprint
 

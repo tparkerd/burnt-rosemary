@@ -107,6 +107,11 @@ from importation.util.models import (chromosome, genotype, genotype_version,
                                      population_structure,
                                      population_structure_algorithm, species,
                                      trait, variant)
+from importation.util.validate import (validate_genotype, validate_kinship,
+                                       validate_line, validate_phenotype,
+                                       validate_population_structure,
+                                       validate_results, validate_runs,
+                                       validate_variant)
 
 
 def process(args):
@@ -190,13 +195,17 @@ def process(args):
 
     logging.info('Configuration file is valid. Verifying that all files exist.')
 
+    # Track all the files to check for existance
+    locations = []
+    filepath_template = Template('${cwd}/${filename}')
+
     # Verify that all files exist
     # Lines
-    lines_filename = Template('${cwd}/${chr}_${shortname}.012.indv')
+    lines_filename = Template('${chr}_${shortname}.012.indv')
     # Genotype
-    genotype_filename = Template('${cwd}/${chr}_${shortname}.012')
+    genotype_filename = Template('${chr}_${shortname}.012')
     # Variants
-    variants_filename = Template('${cwd}/${chr}_${shortname}.012.pos')
+    variants_filename = Template('${chr}_${shortname}.012.pos')
 
     for c in range(1, dp['number_of_chromosomes'] + 1):
       chr_shortname = 'chr' + str(c)
@@ -204,43 +213,69 @@ def process(args):
       genotype_filepath = genotype_filename.substitute(dict(cwd=args.working_directory, shortname=dp['species_shortname'], chr=chr_shortname))
       variants_filepath = variants_filename.substitute(dict(cwd=args.working_directory, shortname=dp['species_shortname'], chr=chr_shortname))
 
-      paths = [ lines_filepath, genotype_filepath, variants_filepath ]
-      for file_path in paths:
-        if not os.path.isfile(file_path):
-          raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), file_path)
+      locations.append(dict(cwd=args.working_directory, filetype='line', filename=lines_filepath))
+      locations.append(dict(cwd=args.working_directory, filetype='genotype', filename=genotype_filepath))
+      locations.append(dict(cwd=args.working_directory, filetype='variant', filename=variants_filepath))
 
     # Go through all the single files that are not named based off of a chromsome
     # Construct the file descriptor dictionaries, and then loop through and test each file's existance
     # phenotype_filename = Template('${cwd}/${growout}.ph.csv') # Welp, this is another instance of pheno file issue
-    generic_filename = Template('${cwd}/${filename}')
-    locations = [
-      dict(cwd=args.working_directory, filename=dp['kinship_filename']),
-      dict(cwd=args.working_directory, filename=dp['population_structure_filename'])
-    ]
+    locations.append(dict(cwd=args.working_directory, filetype='kinship', filename=dp['kinship_filename']))
+    locations.append(dict(cwd=args.working_directory, filetype='population_structure', filename=dp['population_structure_filename']))
 
     # Since there can be more than one file for the phenotypes, results, and run
     # For each array in the configuration file, add it to the list of paths to 
     # verify as existing
+
     for configuration_entry in dp:
       if isinstance(dp[configuration_entry], list):
         for filename in dp[configuration_entry]:
-          locations.append(dict(cwd=args.working_directory, filename=filename))
+          locations.append(dict(cwd=args.working_directory, filetype=configuration_entry, filename=filename))
       else:
+        # For any of the entries that CAN be a list, add their single values to
+        # the file list
         if configuration_entry in [ 'phenotype_filename', 'gwas_run_filename', 'gwas_results_filename' ]:
-          locations.append(dict(cwd=args.working_directory, filename=dp['phenotype_filename']))
+          locations.append(dict(cwd=args.working_directory, filetype=configuration_entry, filename=dp[configuration_entry]))
 
-    logging.debug(f'All file locations:')
-    logging.debug(locations)
+    logging.debug("FILE LOCATIONS: %s", locations)
 
     for file_descriptor in locations:
-      file_path = generic_filename.substitute(file_descriptor)
+      file_path = filepath_template.substitute(file_descriptor)
       if not os.path.isfile(file_path):
           raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), file_path)
 
+
+    logging.info(f'Found all files. Validating file contents.')
+
+    # TODO(tparker): Validate the format and contents of the file
+    for file_descriptor in locations:
+      ft = file_descriptor['filetype']
+      fp = filepath_template.substitute(file_descriptor)
+      if ft == 'line':
+        validate_line(conn, args, fp)
+      elif ft == 'variant':
+        validate_variant(conn, args, fp)
+      elif ft == 'genotype':
+        validate_genotype(conn, args, fp)
+      elif ft == 'kinship':
+        validate_kinship(conn, args, fp)
+      elif ft == 'population_structure':
+        validate_population_structure(conn, args, fp)
+      elif ft == 'phenotype_filename':
+        validate_phenotype(conn, args, fp)
+      elif ft == 'gwas_run_filename':
+        validate_runs(conn, args, fp)
+      elif ft == 'gwas_results_filename':
+        validate_results(conn, args, fp)
+      else:
+        logging.debug(f"Calling validation on unknown file: {fp}")
   except:
     raise
   
-  logging.info(f'Found all files. Processing import.')
+
+    
+
+  sys.exit(0)
 
   # =======================================
   # ========== Experiment Design ==========
@@ -577,6 +612,7 @@ def parseOptions():
   parser.add_argument("-f", "--filename", action="store", help="Specify a configuration file. See documentation for expected format.")
   parser.add_argument("--log", action="store_true", help="Enabled logging. Filename is appended to %(prog)s.log")
   parser.add_argument("working_directory", action="store", metavar="WORKING_DIRECTORY", default=".", help="Working directory. Must contains all required files.")
+  parser.add_argument("--skip_genotype_validation", action="store_true", help="Errors in .012 files are infrequent, so enable this option to assume valid input.")
   args = parser.parse_args()
   if args.debug is True:
     args.verbose = True

@@ -8,12 +8,14 @@ import psycopg2
 
 import importation.util.insert
 from importation.util.dbconnect import config, connect
-from importation.util.models import (chromosome, genotype, genotype_version, growout,
-                         growout_type, gwas_algorithm, gwas_result, gwas_run,
-                         imputation_method, kinship, kinship_algorithm, line,
-                         location, phenotype, population, population_structure,
-                         population_structure_algorithm, species, trait,
-                         variant)
+from importation.util.models import (chromosome, genotype, genotype_version,
+                                     growout, growout_type, gwas_algorithm,
+                                     gwas_result, gwas_run, imputation_method,
+                                     kinship, kinship_algorithm, line,
+                                     location, phenotype, population,
+                                     population_structure,
+                                     population_structure_algorithm, species,
+                                     trait, variant)
 
 
 def find_species(conn, args, speciesShortname):
