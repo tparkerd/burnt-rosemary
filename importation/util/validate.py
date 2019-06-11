@@ -126,7 +126,9 @@ def validate_variant(conn, args, filepath):
       logging.error(e)
 
 def validate_kinship(conn, args, filepath):
-  pass
+  df = pd.read_csv(filepath)
+  nrows, ncols = df.size
+  logging.info("%s, %s", nrows, ncols)
   
 def validate_population_structure(conn, args, filepath):
   pass
