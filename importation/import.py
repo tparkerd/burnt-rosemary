@@ -272,6 +272,8 @@ def process(args):
   except:
     raise
 
+  logging.info(f'Input files appear to be valid. Processing with import.')
+
   # =======================================
   # ========== Experiment Design ==========
   # =======================================
