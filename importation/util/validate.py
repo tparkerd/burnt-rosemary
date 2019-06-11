@@ -57,8 +57,15 @@ def validate_phenotype(conn, args, filepath):
   nrows, ncols = df.shape
   nrows += 1 # include the header in the row count
 
+  if re.match('(genotype)|(pedigree)|(line)', df.columns[0], re.IGNORECASE) is None:
+    raise Exception("Genotype/pedigree/line should be the first column in the phenotype file")
+
+
+  # Rename the first column of data to be the genotypes/lines
+  df.rename(columns={f'{df.columns[0]}': 'genotype'}, inplace=True)
+
   schema_columns = [
-    Column('Pedigree', [
+    Column('genotype', [
       IsDistinctValidation()
     ])
   ]
@@ -79,7 +86,7 @@ def validate_phenotype(conn, args, filepath):
 
   if err:
     for e in err:
-      logging.error(e)
+      logging.error(f"Error encountered while validating: {filepath}")
       raise Exception(e)
 
 def validate_line(conn, args, filepath):
@@ -110,7 +117,7 @@ def validate_line(conn, args, filepath):
 
   if err:
     for e in err:
-      logging.error(e)
+      logging.error(f"Error encountered while validating: {filepath}")
       raise Exception(e)
 
 def validate_genotype(conn, args, filepath):
@@ -159,7 +166,7 @@ def validate_genotype(conn, args, filepath):
   
   if err:
     for e in err:
-      logging.error(e)
+      logging.error(f"Error encountered while validating: {filepath}")
       raise Exception(e)
 
 def validate_variant(conn, args, filepath):
@@ -193,7 +200,7 @@ def validate_variant(conn, args, filepath):
 
   if err:
     for e in err:
-      logging.error(e)
+      logging.error(f"Error encountered while validating: {filepath}")
       raise Exception(e)
 
 def validate_kinship(conn, args, filepath):
@@ -231,7 +238,7 @@ def validate_kinship(conn, args, filepath):
 
   if err:
     for e in err:
-      logging.error(e)
+      logging.error(f"Error encountered while validating: {filepath}")
       raise Exception(e)
   
 def validate_population_structure(conn, args, filepath):
@@ -269,7 +276,7 @@ def validate_population_structure(conn, args, filepath):
 
   if err:
     for e in err:
-      logging.error(e)
+      logging.error(f"Error encountered while validating: {filepath}")
       raise Exception(e)
 
 def validate_runs(conn, args, filepath):
@@ -302,7 +309,7 @@ def validate_runs(conn, args, filepath):
   err = schema.validate(df)
   if err:
     for e in err:
-      logging.error(e)
+      logging.error(f"Error encountered while validating: {filepath}")
       raise Exception(e)
 
 def validate_results(conn, args, filepath):
@@ -335,7 +342,7 @@ def validate_results(conn, args, filepath):
   err = schema.validate(df)
   if err:
     for e in err:
-      logging.error(e)
+      logging.error(f"Error encountered while validating: {filepath}")
       raise Exception(e)
 
 

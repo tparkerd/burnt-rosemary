@@ -1168,7 +1168,9 @@ def insert_gwas_results_from_file(conn,
                                      minor_allele_frequency_cutoff_value)
     logging.debug("Found run ID: %s", gwas_run_ID)
 
-    snp = row['SNP']
+    snp = None
+    if 'SNP' in df.columns:
+      snp = row['SNP']
     chromosome = row['chr']
     chromosome = "chr"+str(chromosome)
     chromosomeID = find.find_chromosome(conn, args, chromosome, speciesID)
