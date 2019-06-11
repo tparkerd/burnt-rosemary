@@ -42,12 +42,58 @@ def location_exists(conn, args, location):
 # Check that the phenotype file has required fields
 # Check if it is a combined growout phenotype file
 def validate_phenotype(conn, args, filepath):
-  pass
+  """Validates input file for phenotype data
 
-# GENOTYPE
-# Check that the genotype file has required fields or at least has the correct
-# file format (012)
+  This function validates that the contents of a file to contain phenotype data.
+  If an error is encountered, throw an exception.
+
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
+    filepath (str): location of input file
+  
+  """
+  df = pd.read_csv(filepath)
+  nrows, ncols = df.shape
+  nrows += 1 # include the header in the row count
+
+  schema_columns = [
+    Column('Pedigree', [
+      IsDistinctValidation()
+    ])
+  ]
+
+  for n in range(1, ncols):
+    schema_columns.append(
+      Column(df.columns[n], [
+        # NOTE(tparker): This may not always be true. If there any phenotypes that
+        # are listed as categories or strings, then this would fail
+        # Find out all the possible phenotype values. It may be difficult to
+        # validate input data without a user-provided dtype list
+        CanConvertValidation(float)
+      ])
+    )
+
+  schema = Schema(schema_columns)
+  err = schema.validate(df)
+
+  if err:
+    for e in err:
+      logging.error(e)
+      raise Exception(e)
+
 def validate_line(conn, args, filepath):
+  """Validates input file for line data
+
+  This function validates that the contents of a file to contain line data.
+  If an error is encountered, throw an exception.
+
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
+    filepath (str): location of input file
+  
+  """
   schema = Schema([
     Column('line_name', [
       IsDistinctValidation()
@@ -65,8 +111,20 @@ def validate_line(conn, args, filepath):
   if err:
     for e in err:
       logging.error(e)
+      raise Exception(e)
 
 def validate_genotype(conn, args, filepath):
+  """Validates input file for genotype data
+
+  This function validates that the contents of a file to contain genotype data.
+  If an error is encountered, throw an exception.
+
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
+    filepath (str): location of input file
+  
+  """
   # Allow for users to skip this validation step because it is time consuming
   if args.skip_genotype_validation is True:
     return
@@ -102,8 +160,20 @@ def validate_genotype(conn, args, filepath):
   if err:
     for e in err:
       logging.error(e)
+      raise Exception(e)
 
 def validate_variant(conn, args, filepath):
+  """Validates input file for variant data
+
+  This function validates that the contents of a file to contain variant data.
+  If an error is encountered, throw an exception.
+
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
+    filepath (str): location of input file
+  
+  """
   schema = Schema([
     Column('chr', [
       CanConvertValidation(int)
@@ -124,26 +194,96 @@ def validate_variant(conn, args, filepath):
   if err:
     for e in err:
       logging.error(e)
+      raise Exception(e)
 
 def validate_kinship(conn, args, filepath):
+  """Validates input file for kinship data
+
+  This function validates that the contents of a file to contain kinship data.
+  If an error is encountered, throw an exception.
+
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
+    filepath (str): location of input file
+  
+  """
   df = pd.read_csv(filepath)
-  nrows, ncols = df.size
-  logging.info("%s, %s", nrows, ncols)
+  nrows, ncols = df.shape
+  df.rename(columns = {"Unnamed: 0": "line_name"}, inplace=True) # since column name is blank by default, rename it for later reference
+  nrows += 1 # include the header row in the count
+  logging.debug(f"Dimensions of kinship matrix: <{nrows}, {ncols}>")
+
+  schema_columns = [
+    Column('line_name', [
+      IsDistinctValidation()
+    ])
+  ]
+
+  for n in range(1, ncols):
+    schema_columns.append(Column(df.columns[n], [
+      CanConvertValidation(float)
+    ]))
+
+  schema = Schema(schema_columns)
+
+  err = schema.validate(df)
+
+  if err:
+    for e in err:
+      logging.error(e)
+      raise Exception(e)
   
 def validate_population_structure(conn, args, filepath):
-  pass
+  """Validates input file for population structure data
 
-# GWAS RUNS
-# Check that the GWAS runs file contains the required fields
-# trait
+  This function validates that the contents of a file to contain population
+  structure data. If an error is encountered, throw an exception.
+
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
+    filepath (str): location of input file
+  
+  """
+  df = pd.read_csv(filepath)
+  nrows, ncols = df.shape
+  nrows += 1 # include the header rows in the count
+  logging.debug(f'Population structure columns: {df.columns}')
+  logging.debug(f"Population structure dimensions: <{nrows}, {ncols}>")
+
+
+  schema_columns = [
+    Column('Pedigree', [
+      IsDistinctValidation()
+    ])
+  ]
+
+  for n in range(1, ncols):
+    schema_columns.append(Column(df.columns[n], [
+      CanConvertValidation(float)
+    ]))
+
+  schema = Schema(schema_columns)
+  err = schema.validate(df)
+
+  if err:
+    for e in err:
+      logging.error(e)
+      raise Exception(e)
+
 def validate_runs(conn, args, filepath):
-  pass
+  """Validates input file for GWAS run data
 
-# GWAS RESULTS
-# Check that the GWAS results file contains the required fields
-# SNP, nSNPs, chr, pos
-def validate_results(conn, args, filepath):
+  This function validates that the contents of a file to contain GWAS run data.
+  If an error is encountered, throw an exception.
 
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
+    filepath (str): location of input file
+  
+  """
   df = pd.read_csv(filepath)
   # For each column, add it to the schema, and then for known ones, add the 
   # schema validation. Use fuzzy comparisons when possible
@@ -163,5 +303,39 @@ def validate_results(conn, args, filepath):
   if err:
     for e in err:
       logging.error(e)
+      raise Exception(e)
+
+def validate_results(conn, args, filepath):
+  """Validates input file for GWAS result data
+
+  This function validates that the contents of a file to contain GWAS result data.
+  If an error is encountered, throw an exception.
+
+  Args:
+    conn (psycopg2.extensions.connection): psycopg2 connection
+    args (ArgumentParser namespace): user-defined arguments
+    filepath (str): location of input file
+  
+  """
+  df = pd.read_csv(filepath)
+  # For each column, add it to the schema, and then for known ones, add the 
+  # schema validation. Use fuzzy comparisons when possible
+  schema_columns = []
+  for col in df.columns:
+    validators = []
+    if re.match("(SNP)|(chr)|(pos)|(nSNPs)", col, re.IGNORECASE):
+      validators.append(CanConvertValidation(int))
+    # Look for any of the p-values and make sure that they can be cast as a float
+    if re.match("((null)?pval(ue)?)", col, re.IGNORECASE):
+      validators.append(CanConvertValidation(float))
+    
+    schema_columns.append(Column(col, validators))
+  schema = Schema(schema_columns)
+
+  err = schema.validate(df)
+  if err:
+    for e in err:
+      logging.error(e)
+      raise Exception(e)
 
 
