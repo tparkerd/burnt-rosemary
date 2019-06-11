@@ -247,7 +247,7 @@ def process(args):
 
     logging.info(f'Found all files. Validating file contents.')
 
-    # TODO(tparker): Validate the format and contents of the file
+    # Validate the contents of each file
     for file_descriptor in locations:
       ft = file_descriptor['filetype']
       fp = filepath_template.substitute(file_descriptor)
