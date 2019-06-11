@@ -271,11 +271,6 @@ def process(args):
         logging.debug(f"Calling validation on unknown file: {fp}")
   except:
     raise
-  
-
-    
-
-  sys.exit(0)
 
   # =======================================
   # ========== Experiment Design ==========
