@@ -329,10 +329,11 @@ def process(args):
   # Species
   s = species(species_shortname, species_binomial, species_subspecies, species_variety)
   species_id = insert.insert_species(conn, args, s)
+  logging.debug(f'[Insert]\tSpecies ID\t{species_id}, {s}')
   # Population
   p = population(population_name, species_id)
   population_id = insert.insert_population(conn, args, p)
-  logging.debug(f'[Insert]\tPopulation ID\t{population_id}')
+  logging.debug(f'[Insert]\tPopulation ID\t{population_id}: {p}')
   # Chromosome
   chromosome_ids = insert.insert_all_chromosomes_for_species(conn, args, chromosome_count, species_id)
   logging.debug(f'[Insert]\tChromosome IDs\t{chromosome_ids}')
@@ -348,7 +349,7 @@ def process(args):
   logging.debug(f'[Insert]\tLine IDs\t{line_ids}')
   # Genotype Version
   reference_genome_id = find.find_line(conn, args, reference_genome_line_name, population_id)
-  logging.debug(f'[Insert]\Reference Genome ID\t{reference_genome_id}')
+  logging.debug(f'[Insert]\tReference Genome ID\t{reference_genome_id}, ({reference_genome_line_name}, {population_id})')
   gv = genotype_version(genotype_version_assembly_name,
                         genotype_version_annotation_name,
                         reference_genome = reference_genome_id,

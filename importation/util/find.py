@@ -30,6 +30,7 @@ def find_species(conn, args, speciesShortname):
   Returns:
     int: species id
   """
+  logging.debug(f'Finding species: {speciesShortname}')
   cur = conn.cursor()
   cur.execute("SELECT species_id FROM species WHERE shortname = %s;", [speciesShortname])
   row = cur.fetchone()
@@ -52,6 +53,7 @@ def find_population(conn, args, populationName):
   Returns:
     int: population id
   """
+  logging.debug(f'Finding population: {populationName}')
   cur = conn.cursor()
   cur.execute("SELECT population_id FROM population WHERE population_name = %s;", [populationName])
   row = cur.fetchone()
@@ -75,6 +77,7 @@ def find_chromosome(conn, args, chromosome_name, chromosome_species):
   Returns:
     int: chromosome id
   """
+  logging.debug(f'Finding chromosome: {chromosome_name}, {chromosome_species}')
   cur = conn.cursor()
   # not sure if next line is correct...
   # TODO(timp): Check if this line meets functional requirements
@@ -105,6 +108,7 @@ def find_line(conn, args, line_name, line_population):
   Returns:
    int: line id
   """
+  logging.debug(f'Finding line: {line_name}, {line_population}')
   cur = conn.cursor()
   cur.execute("SELECT line_id FROM line WHERE line_name = %s AND line_population = %s;", (line_name, line_population))
   row = cur.fetchone()
@@ -127,6 +131,7 @@ def find_growout_type(conn, args, growout_type):
   Returns:
     int: growout type id
   """
+  logging.debug(f'Finding growout type: {growout_type}')
   cur = conn.cursor()
   cur.execute("SELECT growout_type_id FROM growout_type WHERE growout_type = %s;", [growout_type])
   row = cur.fetchone()
@@ -149,6 +154,7 @@ def find_growout(conn, args, growout_name):
   Returns:
       int: growout id
   """
+  logging.debug(f'Finding growout: {growout_name}')
   cur = conn.cursor()
   cur.execute(
       "SELECT growout_id FROM growout WHERE growout_name = %s;" , [growout_name])
@@ -172,6 +178,7 @@ def find_location(conn, args, code):
   Returns:
     int: location id
   """
+  logging.debug(f'Finding location: {code}')
   cur = conn.cursor()
   cur.execute("SELECT location_id FROM location WHERE code = %s;", [code])
   row = cur.fetchone()
@@ -194,6 +201,7 @@ def find_kinship_algorithm(conn, args, algorithm):
   Returns:
     int: kinsihp algorithm id
   """
+  logging.debug(f'Finding kinship algorithm: {algorithm}')
   cur = conn.cursor()
   cur.execute("SELECT kinship_algorithm_id FROM kinship_algorithm WHERE kinship_algorithm = %s;", [algorithm])
   row = cur.fetchone()
@@ -216,6 +224,7 @@ def find_population_structure_algorithm(conn, args, algorithm):
   Returns:
     int: population structure algorithm id
   """
+  logging.debug(f'Finding population structure algorithm: {algorithm}')
   cur = conn.cursor()
   cur.execute("SELECT population_structure_algorithm_id FROM population_structure_algorithm WHERE population_structure_algorithm = %s;", [algorithm])
   row = cur.fetchone()
@@ -238,6 +247,7 @@ def find_gwas_algorithm(conn, args, gwas_algorithm):
   Returns:
     int: GWAS algorithm id
   """
+  logging.debug(f'Finding GWAS algorithm: {gwas_algorithm}')
   cur = conn.cursor()
   cur.execute("SELECT gwas_algorithm_id FROM gwas_algorithm WHERE gwas_algorithm = %s;", [gwas_algorithm])
   row = cur.fetchone()
@@ -260,6 +270,7 @@ def find_genotype_version(conn, args, genotype_version_name):
   Returns:
     int: genotype version id
   """
+  logging.debug(f'Finding genotype version: {genotype_version_name}')
   cur = conn.cursor()
   cur.execute("SELECT genotype_version_id FROM genotype_version WHERE genotype_version_name = %s;", [genotype_version_name])
   row = cur.fetchone()
@@ -282,6 +293,7 @@ def find_imputation_method(conn, args, imputation_method):
   Returns:
     int: imputation method id
   """
+  logging.debug(f'Finding imputation method: {imputation_method}')
   cur = conn.cursor()
   cur.execute("SELECT imputation_method_id FROM imputation_method WHERE imputation_method = %s;", [imputation_method])
   row = cur.fetchone()
@@ -305,6 +317,7 @@ def find_kinship(conn, args, kinship_file_path):
   Returns:
     int: kinship id
   """
+  logging.debug(f'Finding kinship: {kinship_file_path}')
   cur = conn.cursor()
   cur.execute("SELECT kinship_id FROM kinship WHERE kinship_file_path = %s;", [kinship_file_path])
   row = cur.fetchone()
@@ -328,6 +341,7 @@ def find_population_structure(conn, args, population_structure_file_path):
   Returns:
     int: population structure id
   """
+  logging.debug(f'Finding population structure: {population_structure_file_path}')
   cur = conn.cursor()
   cur.execute("SELECT population_structure_id FROM population_structure WHERE population_structure_file_path = %s;", [population_structure_file_path])
   row = cur.fetchone()
@@ -350,6 +364,7 @@ def find_trait(conn, args, trait_name):
   Returns:
     int: trait id
   """
+  logging.debug(f'Finding trait: {trait_name}')
   cur = conn.cursor()
   cur.execute("SELECT trait_id FROM trait WHERE trait_name = %s;", [trait_name])
   row = cur.fetchone()
@@ -414,7 +429,7 @@ def find_gwas_run(conn,
          AND gwas_run_kinship = %s \
          AND gwas_run_population_structure = %s\
          AND minor_allele_frequency_cutoff_value = %s;"
-  args =  (gwas_algorithm,
+  params =  (gwas_algorithm,
            missing_snp_cutoff_value,
            missing_line_cutoff_value,
            gwas_run_imputation_method,
@@ -426,9 +441,9 @@ def find_gwas_run(conn,
            gwas_run_population_structure,
            minor_allele_frequency_cutoff_value)
 
-  logging.debug(args)
+  logging.debug(f'Finding GWAS run: {params}')
 
-  cur.execute(sql, args)
+  cur.execute(sql, params)
                                                      
   row = cur.fetchone()
   if row is not None:
