@@ -300,7 +300,6 @@ def insert_variant(conn, args, variant):
         ON CONFLICT DO NOTHING
         RETURNING variant_id;"""
   cur.execute(SQL, args_tuple)
-  #newID = cur.fetchone()[0]
   row = cur.fetchone()
   if row is not None:
     newID = row[0]
@@ -980,9 +979,11 @@ def insert_gwas_run(conn, args, gwas_run):
                 gwas_run_imputation_method = %s AND \
                 gwas_run_kinship = %s AND \
                 gwas_run_population_structure = %s"
-  args = (gwas_run.t, gwas_run.s, gwas_run.l, gwas_run.a, gwas_run.v, gwas_run.m, gwas_run.i, gwas_run.n, gwas_run.p, gwas_run.k, gwas_run.o)
+  params = (gwas_run.t, gwas_run.s, gwas_run.l, gwas_run.a, gwas_run.v, gwas_run.m, gwas_run.i, gwas_run.n, gwas_run.p, gwas_run.k, gwas_run.o)
+  logging.debug('GWAS Run Insertion Parameters')
+  logging.debug(params)
   
-  known_id = exists_in_database(cur, SQL, args)
+  known_id = exists_in_database(cur, SQL, params)
   if known_id is not None:
     logging.debug(f'[GWAS run found] {gwas_run}')
     conn.commit()
@@ -1003,8 +1004,7 @@ def insert_gwas_run(conn, args, gwas_run):
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         RETURNING gwas_run_id;"""
-  logging.debug(args)
-  cur.execute(SQL, args)
+  cur.execute(SQL, params)
   row = cur.fetchone()
   if row is not None:
     newID = row[0]
@@ -1082,7 +1082,7 @@ def insert_gwas_result(conn, args, gwas_result):
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         RETURNING gwas_result_id;"""
-  args = (gwas_result.c,
+  params = (gwas_result.c,
           gwas_result.b,
           gwas_result.r,
           gwas_result.p,
@@ -1093,9 +1093,9 @@ def insert_gwas_result(conn, args, gwas_result):
           gwas_result.m,
           gwas_result.s)
   try:
-    cur.execute(SQL, args)
+    cur.execute(SQL, params)
   except:
-    logging.error("GWAS Result Input: %s", args)
+    logging.error("GWAS Result Input: %s", params)
     raise
   row = cur.fetchone()
   if row is not None:
