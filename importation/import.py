@@ -461,11 +461,19 @@ def process(args):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), variant_filename)
     except:
       raise
-    insert.insert_variants_from_file(conn,
-                                      args,
-                                      variant_filename,
-                                      species_id,
-                                      chromosome_id)
+    # insert.insert_variants_from_file(conn,
+    #                                  args,
+    #                                  variant_filename,
+    #                                  species_id,
+    #                                  chromosome_id)
+
+    # NOTE(tparker): Changed variant insertion to the async version
+    insert.insert_variants_from_file_async(conn,
+                                           args,
+                                           variant_filename,
+                                           species_id,
+                                           chromosome_id)
+
 
   # =========================================
   # ========== Pipeline Collection ==========

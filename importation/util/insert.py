@@ -1,7 +1,9 @@
 """Constructs and executes SQL to insert data into database"""
+import asyncio
 import logging
 import time
 
+import asyncpg
 import numpy as np
 import pandas as pd
 import psycopg2 as pg
@@ -9,6 +11,7 @@ from tqdm import tqdm
 
 import importation.util.find as find
 import importation.util.parsinghelpers as ph
+from importation.util.dbconnect import config
 from importation.util.models import (chromosome, genotype, genotype_version,
                                      growout, growout_type, gwas_algorithm,
                                      gwas_result, gwas_run, imputation_method,
@@ -17,6 +20,7 @@ from importation.util.models import (chromosome, genotype, genotype_version,
                                      population_structure,
                                      population_structure_algorithm, species,
                                      trait, variant)
+from importation.util.validate import validate_variant_sync
 
 
 def exists_in_database(cur, SQL, params):
@@ -333,6 +337,30 @@ def insert_variants_from_file(conn, args, variantPosFile, speciesID, chromosomeI
     insertedVariantID = insert_variant(conn, args, variantobj)
     insertedVariantIDs.append(insertedVariantID)
   return insertedVariantIDs
+
+def insert_variants_from_file_async(conn, args, variantPosFile, speciesID, chromosomeID):
+  """Insert variant position information (SNP position) using asyncpg to handle importation"""
+  cred = config()
+
+  # Parse input file
+  # Get all of the data and pass it to the runner
+  df = ph.parse_variants_from_file(variantPosFile)
+  num_datapoints = len(df)
+  df = [ int(d) for d in df ]
+  df = list(zip(
+                ([speciesID] * num_datapoints),
+                ([chromosomeID] * num_datapoints),
+                  df
+              )
+            )
+  # Validation contents of input file
+  # NOTE(tparker): Assumes that there is a unique SNP position for each entry
+  #                Also, this means that each file can only have a SINGLE chromosome
+  loop = asyncio.get_event_loop()
+  validated_data = loop.run_until_complete(validate_variant_sync(args, df))
+  # Perform  importation
+  results = loop.run_until_complete(variant_sync_run(args, validated_data))
+  logging.info(f'Imported {results} data point(s)')
 
 
 def insert_genotype(conn, args, genotype):
@@ -1186,20 +1214,65 @@ def insert_gwas_results_from_file(conn,
     else:
       pcs_list = None
 
+    # Assume the data producer did not provide the data
+    # NOTE(tparker): I want to replace this with more flexible code that does
+    # not restrict the user's spelling of the column names
+    model = None
     modelAddedPval = None
+    pval = None
+    nullPval = None
+    cofactor = None
+    order = None
+
+    if 'model' in df.columns:
+      model = row['model']
     if 'modelAddedPval' in df.columns:
       modelAddedPval = row['modelAddedPval']
- 
+    if 'pval' in df.columns:
+      pval = row['pval']
+    if 'nullPval' in df.columns:
+      nullPval = row['nullPval']
+    if 'cofactor' in df.columns:
+      cofactor = row['cofactor']
+    if 'order' in df.columns:
+      order = row['order']
+
+
     new_gwas_result = gwas_result(chromosomeID,
                                   basepair,
                                   gwas_run_ID,
-                                  row['pval'],
-                                  row['cofactor'],
-                                  row['order'],
-                                  row['nullPval'],
+                                  pval,
+                                  cofactor,
+                                  order,
+                                  nullPval,
                                   modelAddedPval,
-                                  row['model'],
+                                  model,
                                   pcs_list)
     new_gwas_result_ID = insert_gwas_result(conn, args, new_gwas_result)
     new_gwas_result_IDs.append(new_gwas_result_ID)
   return new_gwas_result_IDs
+
+# Asynchronous variants insertion
+
+async def variant_sync_run(args, data):
+  cred = config()
+  conn = await asyncpg.connect(host=cred['host'],
+                               port=cred['port'],
+                               user=cred['user'],
+                               password=cred['password'],
+                               database=cred['database'])
+  # Copy all of the validated SNP postion data into the variant table
+  # This does not perform any validation against the contents of the
+  # database, so it will fail if any constraints are violated or duplicate
+  # information is attempted to be imported.
+  # Any data that arrives to this point must be preprocessed and validated
+  # by other means.
+  result = await conn.copy_records_to_table(
+    'variant', columns=['variant_species', 'variant_chromosome', 'variant_pos'], records=data
+  )
+
+  await conn.close()
+
+  # Return the number of data points that were imported
+  # This should match the number of unique entries in the input file (line count)
+  return int(result.split(' ')[1])
