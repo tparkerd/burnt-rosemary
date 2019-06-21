@@ -571,6 +571,18 @@ def process(args):
                                                           kinship_id,
                                                           population_structure_id,
                                                           minor_allele_frequency_cutoff_value)
+    gwas_result_ids = insert.insert_gwas_results_from_file(conn = conn,
+                                                           args = args,
+                                                           speciesId = species_id,
+                                                           gwas_results_file = gwas_filename,
+                                                           gwas_algorithm_ID = gwas_algorithm_id,
+                                                           missing_snp_cutoff_value = missing_snp_cutoff_value,
+                                                           missing_line_cutoff_value = missing_line_cutoff_value,
+                                                           imputationMethodID = imputation_method_id,
+                                                           genotypeVersionID = genotype_version_id,
+                                                           kinshipID = kinship_id,
+                                                           populationStructureID = population_structure_id,
+                                                           minor_allele_frequency_cutoff_value = minor_allele_frequency_cutoff_value)
 
 def parseOptions():
   """
