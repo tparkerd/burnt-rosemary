@@ -59,12 +59,12 @@ def insert_species(conn, args, species):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT species_id \
+  SQL = """SELECT species_id \
           FROM species \
           WHERE shortname = %s AND \
                 binomial = %s AND \
                 subspecies = %s AND \
-                variety = %s"
+                variety = %s"""
   args_tuple = (species.n, species.b, species.s, species.v)
 
   known_id = exists_in_database(cur, SQL, args_tuple)
@@ -104,10 +104,10 @@ def insert_population(conn, args, population):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT population_id \
+  SQL = """SELECT population_id \
           FROM population \
           WHERE population_name = %s AND \
-                population_species = %s"
+                population_species = %s"""
   args_tuple = (population.n, population.s)
   
   known_id = exists_in_database(cur, SQL, args_tuple)
@@ -146,10 +146,10 @@ def insert_chromosome(conn, args, chromosome):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT chromosome_id \
+  SQL = """SELECT chromosome_id \
           FROM chromosome \
           WHERE chromosome_name = %s AND \
-                chromosome_species = %s"
+                chromosome_species = %s"""
   args_tuple = (chromosome.n, chromosome.s)
   
   known_id = exists_in_database(cur, SQL, args_tuple)
@@ -217,10 +217,10 @@ def insert_line(conn, args, line):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT line_id \
+  SQL = """SELECT line_id \
           FROM line \
           WHERE line_name = %s AND \
-                line_population = %s"
+                line_population = %s"""
   args_tuple = (line.n, line.p)
   
   known_id = exists_in_database(cur, SQL, args_tuple)
@@ -285,11 +285,11 @@ def insert_variant(conn, args, variant):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT variant_id \
+  SQL = """SELECT variant_id \
           FROM variant \
           WHERE variant_species = %s AND \
                 variant_chromosome = %s AND \
-                variant_pos = %s"
+                variant_pos = %s"""
   args_tuple = (variant.s, variant.c, variant.p)
   
   known_id = exists_in_database(cur, SQL, args_tuple)
@@ -379,11 +379,11 @@ def insert_genotype(conn, args, genotype):
   cur = conn.cursor()
 
   # See if the genotype has already been inserted, and if so, return it
-  SQL = f"SELECT genotype_id \
+  SQL = """SELECT genotype_id \
           FROM genotype \
           WHERE genotype_line = %s AND \
                 genotype_chromosome = %s AND \
-                genotype_genotype_version = %s"
+                genotype_genotype_version = %s"""
   args = (genotype.l, genotype.c, genotype.v)
 
   known_id = exists_in_database(cur, SQL, args)
@@ -515,11 +515,11 @@ def insert_phenotype(conn, args, phenotype):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT phenotype_id \
+  SQL = """SELECT phenotype_id \
           FROM phenotype \
           WHERE phenotype_line = %s AND \
                 phenotype_trait = %s AND \
-                LOWER(phenotype_value) = %s" # Lower needed to deal with SQL's representation of NaN ('NaN') and Python's ('nan')
+                LOWER(phenotype_value) = %s""" # Lower needed to deal with SQL's representation of NaN ('NaN') and Python's ('nan')
   args_tuple = (phenotype.l, phenotype.t, phenotype.v)
   
   known_id = exists_in_database(cur, SQL, args_tuple)
@@ -593,9 +593,9 @@ def insert_trait(conn, args, trait):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT trait_id \
+  SQL = """SELECT trait_id \
           FROM trait \
-          WHERE trait_name = %s"
+          WHERE trait_name = %s"""
   arg = (trait.n,)
   
   known_id = exists_in_database(cur, SQL, arg)
@@ -688,9 +688,9 @@ def insert_gwas_algorithm(conn, args, gwas_algorithm):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT gwas_algorithm_id \
+  SQL = """SELECT gwas_algorithm_id \
           FROM gwas_algorithm \
-          WHERE gwas_algorithm = %s"
+          WHERE gwas_algorithm = %s"""
   args = (gwas_algorithm.a,)
   
   known_id = exists_in_database(cur, SQL, args)
@@ -731,12 +731,12 @@ def insert_genotype_version(conn, args, genotype_version):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT genotype_version_id \
+  SQL = """SELECT genotype_version_id \
           FROM genotype_version \
           WHERE genotype_version_assembly_name = %s AND \
                 genotype_version_annotation_name = %s AND \
                 reference_genome = %s AND \
-                genotype_version_population = %s"
+                genotype_version_population = %s"""
   args_tuple = (genotype_version.n, genotype_version.v, genotype_version.r, genotype_version.p)
   
   known_id = exists_in_database(cur, SQL, args_tuple)
@@ -778,9 +778,9 @@ def insert_imputation_method(conn, args, imputation_method):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT imputation_method_id \
+  SQL = """SELECT imputation_method_id \
           FROM imputation_method \
-          WHERE imputation_method = %s"
+          WHERE imputation_method = %s"""
   args = (imputation_method.m,)
   
   known_id = exists_in_database(cur, SQL, args)
@@ -821,9 +821,9 @@ def insert_kinship_algorithm(conn, args, kinship_algorithm):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT kinship_algorithm_id \
+  SQL = """SELECT kinship_algorithm_id \
           FROM kinship_algorithm \
-          WHERE kinship_algorithm = %s"
+          WHERE kinship_algorithm = %s"""
   args = (kinship_algorithm.a,)
   
   known_id = exists_in_database(cur, SQL, args)
@@ -864,10 +864,10 @@ def insert_kinship(conn, args, kinship):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT kinship_id \
+  SQL = """SELECT kinship_id \
           FROM kinship \
           WHERE kinship_algorithm = %s AND \
-                kinship_file_path = %s"
+                kinship_file_path = %s"""
   args = (kinship.a, kinship.p)
   
   known_id = exists_in_database(cur, SQL, args)
@@ -907,9 +907,9 @@ def insert_population_structure_algorithm(conn, args, population_structure_algor
   """
   cur = conn.cursor()
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT population_structure_algorithm_id \
+  SQL = """SELECT population_structure_algorithm_id \
           FROM population_structure_algorithm \
-          WHERE population_structure_algorithm = %s"
+          WHERE population_structure_algorithm = %s"""
   args = (population_structure_algorithm.a,)
   
   known_id = exists_in_database(cur, SQL, args)
@@ -950,10 +950,10 @@ def insert_population_structure(conn, args, population_structure):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT population_structure_id \
+  SQL = """SELECT population_structure_id \
           FROM population_structure \
           WHERE population_structure_algorithm = %s AND \
-                population_structure_file_path = %s"
+                population_structure_file_path = %s"""
   args = (population_structure.a, population_structure.p)
   
   known_id = exists_in_database(cur, SQL, args)
@@ -994,7 +994,7 @@ def insert_gwas_run(conn, args, gwas_run):
   cur = conn.cursor()
 
   # See if data has already been inserted, and if so, return it
-  SQL = f"SELECT gwas_run_id \
+  SQL = """SELECT gwas_run_id \
           FROM gwas_run \
           WHERE gwas_run_trait = %s AND \
                 nsnps = %s AND \
@@ -1006,8 +1006,18 @@ def insert_gwas_run(conn, args, gwas_run):
                 minor_allele_frequency_cutoff_value = %s AND \
                 gwas_run_imputation_method = %s AND \
                 gwas_run_kinship = %s AND \
-                gwas_run_population_structure = %s"
-  params = (gwas_run.t, gwas_run.s, gwas_run.l, gwas_run.a, gwas_run.v, gwas_run.m, gwas_run.i, gwas_run.n, gwas_run.p, gwas_run.k, gwas_run.o)
+                gwas_run_population_structure = %s"""
+  params = (gwas_run.t,
+            gwas_run.s,
+            gwas_run.l,
+            gwas_run.a,
+            gwas_run.v,
+            gwas_run.m,
+            gwas_run.i,
+            gwas_run.n,
+            gwas_run.p,
+            gwas_run.k,
+            gwas_run.o)
   logging.debug('GWAS Run Insertion Parameters')
   logging.debug(params)
   
