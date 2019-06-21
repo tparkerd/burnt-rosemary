@@ -450,7 +450,14 @@ def process(args):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), line_filename)
     except:
       raise
-    genotype_ids = insert.insert_genotypes_from_file(conn, args, geno_filename, line_filename, chromosome_id, population_id, genotype_version_id)
+    genotype_ids = insert.insert_genotypes_from_file(conn = conn,
+                                                     args = args,
+                                                     genotypeFile = geno_filename,
+                                                     lineFile = line_filename,
+                                                     chromosomeID = chromosome_id,
+                                                     populationID = population_id,
+                                                     genotype_versionID = genotype_version_id
+                                                    )
   # Variants
   for c in range(1, chromosome_count + 1):
     chromosome_shortname = 'chr' + str(c)
@@ -573,7 +580,7 @@ def process(args):
                                                           minor_allele_frequency_cutoff_value)
     gwas_result_ids = insert.insert_gwas_results_from_file(conn = conn,
                                                            args = args,
-                                                           speciesId = species_id,
+                                                           speciesID = species_id,
                                                            gwas_results_file = gwas_filename,
                                                            gwas_algorithm_ID = gwas_algorithm_id,
                                                            missing_snp_cutoff_value = missing_snp_cutoff_value,

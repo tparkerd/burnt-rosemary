@@ -407,7 +407,13 @@ def insert_genotype(conn, args, genotype):
   return genotype_id
 
 
-def insert_genotypes_from_file(conn, args, genotypeFile, lineFile, chromosomeID, populationID, genotype_versionID):
+def insert_genotypes_from_file(conn,
+                               args,
+                               genotypeFile,
+                               lineFile,
+                               chromosomeID,
+                               populationID,
+                               genotype_versionID):
   """Inserts genotypes into database
 
   This function inserts a genotypes into a database
@@ -1191,19 +1197,20 @@ def insert_gwas_results_from_file(conn,
       nLines = row['nLines']
 
     traitID = find.find_trait(conn, args, trait)
-    gwas_run_ID = find.find_gwas_run(conn, 
-                                     args,
-                                     gwas_algorithm_ID,
-                                     missing_snp_cutoff_value,
-                                     missing_line_cutoff_value,
-                                     imputationMethodID,
-                                     traitID,
-                                     nSNPs,
-                                     nLines,
-                                     genotypeVersionID,
-                                     kinshipID,
-                                     populationStructureID,
-                                     minor_allele_frequency_cutoff_value)
+    gwas_run_ID = find.find_gwas_run(conn = conn, 
+                                     args = args,
+                                     gwas_algorithm = gwas_algorithm_ID,
+                                     missing_snp_cutoff_value = missing_snp_cutoff_value,
+                                     missing_line_cutoff_value = missing_line_cutoff_value,
+                                     gwas_run_imputation_method = imputationMethodID,
+                                     gwas_run_trait = traitID,
+                                     nsnps = nSNPs,
+                                     nlines = nLines,
+                                     gwas_run_genotype_version = genotypeVersionID,
+                                     gwas_run_kinship = kinshipID,
+                                     gwas_run_population_structure = populationStructureID,
+                                     minor_allele_frequency_cutoff_value = minor_allele_frequency_cutoff_value)
+
     logging.debug("Found run ID: %s", gwas_run_ID)
 
     snp = None
