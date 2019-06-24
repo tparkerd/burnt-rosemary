@@ -89,7 +89,7 @@ import json
 import logging
 import os
 import sys
-from pprint import pprint
+from pprint import pformat
 from random import randint
 from string import Template
 
@@ -237,7 +237,8 @@ def process(args):
         if configuration_entry in [ 'phenotype_filename', 'gwas_run_filename', 'gwas_results_filename' ]:
           locations.append(dict(cwd=args.working_directory, filetype=configuration_entry, filename=dp[configuration_entry]))
 
-    logging.debug("FILE LOCATIONS: %s", locations)
+    logging.debug("File locations\n======================")
+    logging.debug(pformat(locations))
 
     for file_descriptor in locations:
       file_path = filepath_template.substitute(file_descriptor)
@@ -350,12 +351,14 @@ def process(args):
   # Genotype Version
   reference_genome_id = find.find_line(conn, args, reference_genome_line_name, population_id)
   logging.debug(f'[Insert]\tReference Genome ID\t{reference_genome_id}, ({reference_genome_line_name}, {population_id})')
-  gv = genotype_version(genotype_version_assembly_name,
-                        genotype_version_annotation_name,
+  gv = genotype_version(genotype_version_name = genotype_version_assembly_name,
+                        genotype_version = genotype_version_annotation_name,
                         reference_genome = reference_genome_id,
                         genotype_version_population = population_id)
   genotype_version_id = insert.insert_genotype_version(conn, args, gv)
   logging.debug(f'[Insert]\tGenome Version ID\t{genotype_version_id}')
+  if genotype_version_id is None:
+    logging.error(f'Genotype version not found, insertion data: {pformat(gv)}')
   
   # Growout, Type, and Location
   # NOTE(tparker): Unknown at this time
@@ -566,18 +569,6 @@ def process(args):
                                                                   kinship_id,
                                                                   population_structure_id)
     # GWAS Results
-    gwas_result_ids = insert.insert_gwas_results_from_file(conn,
-                                                          args,
-                                                          species_id,
-                                                          gwas_filename,
-                                                          gwas_algorithm_id,
-                                                          missing_snp_cutoff_value,
-                                                          missing_line_cutoff_value,
-                                                          imputation_method_id,
-                                                          reference_genome_id,
-                                                          kinship_id,
-                                                          population_structure_id,
-                                                          minor_allele_frequency_cutoff_value)
     gwas_result_ids = insert.insert_gwas_results_from_file(conn = conn,
                                                            args = args,
                                                            speciesID = species_id,

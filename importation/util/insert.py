@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import time
+from pprint import pformat
 
 import asyncpg
 import numpy as np
@@ -34,6 +35,7 @@ def exists_in_database(cur, SQL, params):
     int if true, None otherwise.
 
   """
+  logging.debug(f'Existance Check: {pformat(SQL)} with parameters: {pformat(params)}')
   cur.execute(SQL, params)
   query_result = cur.fetchone()
   if query_result is not None:
@@ -384,9 +386,9 @@ def insert_genotype(conn, args, genotype):
           WHERE genotype_line = %s AND \
                 genotype_chromosome = %s AND \
                 genotype_genotype_version = %s"""
-  args = (genotype.l, genotype.c, genotype.v)
+  params = (genotype.l, genotype.c, genotype.v)
 
-  known_id = exists_in_database(cur, SQL, args)
+  known_id = exists_in_database(cur, SQL, params)
   if known_id is not None:
     logging.debug(f'[Genotype found] ({genotype.l}, {genotype.c}, {genotype.v})')
     conn.commit()
@@ -394,13 +396,20 @@ def insert_genotype(conn, args, genotype):
     return known_id
 
   # Otherwise, the genotype has not been inserted yet, so do so
-  SQL = """INSERT INTO genotype(genotype_line, genotype_chromosome, genotype, genotype_genotype_version)
+  SQL = """INSERT INTO genotype(genotype_line,
+                                genotype_chromosome,
+                                genotype,
+                                genotype_genotype_version)
         VALUES (%s,%s,%s,%s)
         ON CONFLICT DO NOTHING
         RETURNING genotype_id;"""
 
-  args_tuple = (genotype.l, genotype.c, genotype.g, genotype.v)
-  cur.execute(SQL, args_tuple)
+  params = (genotype.l, genotype.c, genotype.g, genotype.v)
+  try:
+    cur.execute(SQL, params)
+  except Exception as err:
+    logging.error(f'{err} encountered while inserting genotype: {params}')
+    raise
   genotype_id = cur.fetchone()[0]
   conn.commit()
   cur.close()
@@ -743,21 +752,24 @@ def insert_genotype_version(conn, args, genotype_version):
                 genotype_version_annotation_name = %s AND \
                 reference_genome = %s AND \
                 genotype_version_population = %s"""
-  args_tuple = (genotype_version.n, genotype_version.v, genotype_version.r, genotype_version.p)
+  params = (genotype_version.n, genotype_version.v, genotype_version.r, genotype_version.p)
   
-  known_id = exists_in_database(cur, SQL, args_tuple)
+  known_id = exists_in_database(cur, SQL, params)
   if known_id is not None:
-    logging.debug(f'[Genotype version found] {genotype_version}')
     conn.commit()
     cur.close()
     return known_id
 
-  SQL = """INSERT INTO genotype_version(genotype_version_assembly_name, genotype_version_annotation_name, reference_genome, genotype_version_population)
+  SQL = """INSERT INTO genotype_version(genotype_version_assembly_name,
+                                        genotype_version_annotation_name,
+                                        reference_genome,
+                                        genotype_version_population)
         VALUES (%s,%s,%s,%s)
         ON CONFLICT DO NOTHING
         RETURNING genotype_version_id;"""
-  # print("Genotype Version: " + str(genotype_version))
-  cur.execute(SQL, args_tuple)
+  
+  logging.debug(f'Inserting genotype version\n==========================\nSQL:\t{pformat(SQL)}\nParameters:\t{pformat(params)}')
+  cur.execute(SQL, params)
   row = cur.fetchone()
   if row is not None:
     newID = row[0]
@@ -765,6 +777,7 @@ def insert_genotype_version(conn, args, genotype_version):
     cur.close()
     return newID
   else:
+    logging.error(f'Failed to insert genotype version: {params}')
     return None
 
 
@@ -1138,8 +1151,8 @@ def insert_gwas_result(conn, args, gwas_result):
           gwas_result.s)
   try:
     cur.execute(SQL, params)
-  except:
-    logging.error("GWAS Result Input: %s", params)
+  except Exception as err:
+    logging.error(f"{err} for GWAS result insertion for {pformat(params)}")
     raise
   row = cur.fetchone()
   if row is not None:
@@ -1254,17 +1267,17 @@ def insert_gwas_results_from_file(conn,
     if 'order' in df.columns:
       order = row['order']
 
+    new_gwas_result = gwas_result(gwas_result_chromosome = chromosomeID,
+                                  basepair = basepair,
+                                  gwas_result_gwas_run = gwas_run_ID,
+                                  pval = pval,
+                                  cofactor = cofactor,
+                                  _order = order,
+                                  null_pval = nullPval,
+                                  model_added_pval = modelAddedPval,
+                                  model = model,
+                                  pcs = pcs_list)
 
-    new_gwas_result = gwas_result(chromosomeID,
-                                  basepair,
-                                  gwas_run_ID,
-                                  pval,
-                                  cofactor,
-                                  order,
-                                  nullPval,
-                                  modelAddedPval,
-                                  model,
-                                  pcs_list)
     new_gwas_result_ID = insert_gwas_result(conn, args, new_gwas_result)
     new_gwas_result_IDs.append(new_gwas_result_ID)
   return new_gwas_result_IDs
