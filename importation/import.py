@@ -358,7 +358,7 @@ def process(args):
   genotype_version_id = insert.insert_genotype_version(conn, args, gv)
   logging.debug(f'[Insert]\tGenome Version ID\t{genotype_version_id}')
   if genotype_version_id is None:
-    logging.error(f'Genotype version not found, insertion data: {pformat(gv)}')
+    raise Exception(f'Genotype version is None for parameters: {pformat(gv)}')
   
   # Growout, Type, and Location
   # NOTE(tparker): Unknown at this time
