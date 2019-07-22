@@ -107,6 +107,7 @@ from importation.util.models import (chromosome, genotype, genotype_version,
                                      population_structure,
                                      population_structure_algorithm, species,
                                      trait, variant)
+from importation.util.truncate import truncate
 from importation.util.validate import (validate_genotype, validate_kinship,
                                        validate_line, validate_phenotype,
                                        validate_population_structure,
@@ -611,6 +612,8 @@ def parseOptions():
   parser.add_argument("--log", action="store_true", help="Enabled logging. Filename is appended to %(prog)s.log")
   parser.add_argument("working_directory", action="store", metavar="WORKING_DIRECTORY", default=".", help="Working directory. Must contains all required files.")
   parser.add_argument("--skip_genotype_validation", action="store_true", help="Errors in .012 files are infrequent, so enable this option to assume valid input.")
+  parser.add_argument("--env", action="store", default=".env.qa", help="Environment file (Default: .env.qa)")
+  parser.add_argument("--reset-qa", dest="reset_qa", action="store_true", help="Empty the QA database using")
   args = parser.parse_args()
   if args.debug is True:
     args.verbose = True
@@ -626,9 +629,19 @@ def parseOptions():
   
   logging_format = '%(asctime)s - %(levelname)s - %(filename)s %(lineno)d - %(message)s'
   logging.basicConfig(format=logging_format, level=logging_level)
+  
+  try:
+    if not os.path.exists(os.path.join(args.working_directory, args.env)):
+      raise FileNotFoundError
+  except:
+    raise
 
   return args
 
 if __name__ == "__main__":
   args = parseOptions()
-  process(args)
+  
+  if args.reset_qa:
+    truncate(args)
+  else:
+    process(args)
