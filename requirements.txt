@@ -4,3 +4,4 @@ configparser
 tqdm
 python-dotenv
 pandas_schema
+asyncpg

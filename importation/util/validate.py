@@ -1,11 +1,14 @@
 """Validation methods for importation"""
+import asyncio
 import csv
 import errno
 import itertools
 import logging
 import os
 import re
+import time
 
+import asyncpg
 import numpy as np
 import pandas as pd
 import psycopg2
@@ -14,6 +17,7 @@ from pandas_schema.validation import (CanConvertValidation,
                                       CustomSeriesValidation,
                                       InRangeValidation, IsDistinctValidation,
                                       MatchesPatternValidation)
+from tqdm import tqdm
 
 import importation.util.insert as insert
 from importation.util.dbconnect import config, connect
@@ -25,6 +29,7 @@ from importation.util.models import (chromosome, genotype, genotype_version,
                                      population_structure,
                                      population_structure_algorithm, species,
                                      trait, variant)
+from importation.util.parsinghelpers import parse_variants_from_file
 
 
 def file_exists(conn, args, filepath):
@@ -186,7 +191,8 @@ def validate_variant(conn, args, filepath):
       CanConvertValidation(int)
     ]),
     Column('pos', [
-      CanConvertValidation(int)
+      CanConvertValidation(int),
+      IsDistinctValidation()
     ])
   ])
 
@@ -345,4 +351,31 @@ def validate_results(conn, args, filepath):
       logging.error(f"Error encountered while validating: {filepath}")
       raise Exception(e)
 
+
+# Asynchronous validation of variant data
+async def validate_variant_sync(args, data):
+  cred = config()
+  conn = await asyncpg.connect(host=cred['host'],
+                               port=cred['port'],
+                               user=cred['user'],
+                               password=cred['password'],
+                               database=cred['database'])
+  # Asynchronous insertion function is actually a COPY postgresql statement
+  # Therefore, you have to validate the input data does not conflict  with 
+  # existing data before importation
+  results = []
+  stmt = await conn.prepare('''SELECT variant_id FROM variant WHERE variant_species = $1 AND variant_chromosome = $2 AND variant_pos = $3''')
+  for d in tqdm(data, desc='Validate variant input contents: '):
+    # Expand the data tuple to be the chromosome_id, species_id, and variant position (SNP position)
+    c, s, p = d
+    # Check if the SNP information has already been imported into the database
+    r = await stmt.fetchval(c, s, p)
+    # If it has *not* been imported yet, save it for later, otherwise skip and discard it
+    if r is None:
+      results.append(d)
+
+  await conn.close()
+
+  # Send back a list of tuples to import
+  return results
 

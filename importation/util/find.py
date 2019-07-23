@@ -418,18 +418,20 @@ def find_gwas_run(conn,
 
   """
   cur = conn.cursor()
-  sql = "SELECT gwas_run_id FROM gwas_run WHERE gwas_run_gwas_algorithm = %s \
-         AND missing_snp_cutoff_value = %s \
-         AND missing_line_cutoff_value = %s \
-         AND gwas_run_imputation_method = %s \
-         AND gwas_run_trait = %s \
-         AND (nsnps = %s or nsnps is null) \
-         AND (nlines = %s or nlines is null) \
-         AND gwas_run_genotype_version = %s \
-         AND gwas_run_kinship = %s \
-         AND gwas_run_population_structure = %s\
-         AND minor_allele_frequency_cutoff_value = %s;"
-  params =  (gwas_algorithm,
+  sql = """SELECT gwas_run_id
+           FROM gwas_run
+           WHERE gwas_run_gwas_algorithm = %s
+           AND missing_snp_cutoff_value = %s
+           AND missing_line_cutoff_value = %s
+           AND gwas_run_imputation_method = %s
+           AND gwas_run_trait = %s
+           AND (nsnps = %s or nsnps is null)
+           AND (nlines = %s or nlines is null)
+           AND gwas_run_genotype_version = %s
+           AND gwas_run_kinship = %s
+           AND gwas_run_population_structure = %s
+           AND minor_allele_frequency_cutoff_value = %s;"""
+  params = (gwas_algorithm,
            missing_snp_cutoff_value,
            missing_line_cutoff_value,
            gwas_run_imputation_method,
