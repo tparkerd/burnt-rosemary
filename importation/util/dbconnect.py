@@ -8,7 +8,7 @@ import logging
 
 
 # Use the parameters in database.ini to configure the database connection
-def config():
+def config(args):
   """Collect credentials for connecting to database using environment variables 
 
     This function parsers out the PostgreSQL credentials from environment
@@ -25,7 +25,10 @@ def config():
         host=localhost
         port=5432
   """
-  load_dotenv()
+  try:
+    load_dotenv(args.env)
+  except:
+    raise 
   # get section, default to postgresql
   db = {}
   required_sections = [ 'database', 'user', 'password', 'host', 'port' ]
@@ -53,7 +56,7 @@ def connect(args):
   conn = None
   try:
     # read connection parameters
-    params = config()
+    params = config(args)
 
     # connect to the PostgreSQL server
     logging.info('Connecting to the PostgreSQL database.')

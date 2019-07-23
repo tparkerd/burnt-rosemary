@@ -587,41 +587,7 @@ def parseOptions():
   """
   Function to parse user-provided options from terminal
   """
-  description="""Importation script specificaly for Setaria dataset.
-  
-  Importation happens in five stages:
-    Experiment Design          Pipeline Design
-            |                         |
-            |                         |
-            V                         V
-  Experiment Collection       Pipeline Collection
-                   \             /
-                    \           /
-                     \         /
-                      V       V
-                       Results
-
-  Example configuration file:
-    # configuration.json
-    {
-      "species": {
-        "shortname": "setaria",
-        "binomial name": "Setaria Dkss"
-      },
-      "population": "wg393",
-      "growout": [
-        {
-          "name": "PH18",
-          "year": "2018",
-          "type": "phenotyper",
-          "location": {
-            "code": "PH18"
-          }
-        }
-      ]
-    }
-    
-    """
+  description="""Importation script specificaly for Setaria dataset."""
   parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument("--verbose", action="store_true", help="Increase output verbosity")
   parser.add_argument("--debug", action="store_true", help="Enables --verbose and disables writes to disk")
@@ -650,7 +616,7 @@ def parseOptions():
   
   try:
     if not os.path.exists(os.path.join(args.working_directory, args.env)):
-      raise FileNotFoundError
+      raise FileNotFoundError(f"Environment file not found. File missing: {args.env}")
   except:
     raise
 

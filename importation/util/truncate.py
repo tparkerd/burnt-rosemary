@@ -39,7 +39,7 @@ def truncate(args):
   
   """
 
-  def empty(conn, args, table_name):
+  def exec(conn, args, stmt):
     """Remove all entries in a table with truncation
 
     This function removes all data in a table
@@ -47,17 +47,16 @@ def truncate(args):
     Args:
       conn (psycopg2.extensions.connection): psycopg2 connection
       args (ArgumentParser namespace): user-defined arguments
-      table_name (string): name of table in database
+      SQL statement (string): truncation command
     """
     cur = conn.cursor()
-
-    # See if data has already been inserted, and if so, return it
-    SQL = """TRUNCATE TABLE %s"""
-    args_tuple = table_name
     try:
-      cur.execute(SQL, args_tuple)    
+      cur.execute(stmt)
     except:
       raise
+    finally:
+      conn.commit()
+      cur.close()
 
   conn = connect(args)
   
@@ -83,5 +82,11 @@ def truncate(args):
              'population',
              'imputation_method' ]
 
-  for table in tables:
-    empty(conn, args, table)
+  # Since table names cannot be passed as parameters to a prepared statement,
+  # I had to construct each truncate statement by hardcoding them
+  sql_stmts = [ f"TRUNCATE TABLE {t} CASCADE" for t in tables ]
+  logging.debug(sql_stmts)
+
+  for stmt in sql_stmts:
+    logging.info(f"Executing: {stmt}")
+    exec(conn, args, stmt)
