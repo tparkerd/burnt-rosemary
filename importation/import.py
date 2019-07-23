@@ -595,7 +595,7 @@ def parseOptions():
   parser.add_argument("-f", "--filename", action="store", help="Specify a configuration file. See documentation for expected format.")
   parser.add_argument("--log", action="store_true", help="Enabled logging. Filename is appended to %(prog)s.log")
   parser.add_argument("working_directory", action="store", metavar="WORKING_DIRECTORY", default=".", help="Working directory. Must contains all required files.")
-  parser.add_argument("--skip_genotype_validation", action="store_true", help="Errors in .012 files are infrequent, so enable this option to assume valid input.")
+  parser.add_argument("--skip-genotype-validation", action="store_true", help="Errors in .012 files are infrequent, so enable this option to assume valid input.")
   parser.add_argument("--env", action="store", default=".env.qa", help="Environment file (Default: .env.qa)")
   parser.add_argument("--reset-qa", dest="reset_qa", action="store_true", help="Empty the QA database using")
   args = parser.parse_args()

@@ -354,7 +354,7 @@ def validate_results(conn, args, filepath):
 
 # Asynchronous validation of variant data
 async def validate_variant_sync(args, data):
-  cred = config()
+  cred = config(args)
   conn = await asyncpg.connect(host=cred['host'],
                                port=cred['port'],
                                user=cred['user'],

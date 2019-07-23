@@ -342,7 +342,7 @@ def insert_variants_from_file(conn, args, variantPosFile, speciesID, chromosomeI
 
 def insert_variants_from_file_async(conn, args, variantPosFile, speciesID, chromosomeID):
   """Insert variant position information (SNP position) using asyncpg to handle importation"""
-  cred = config()
+  cred = config(args)
 
   # Parse input file
   # Get all of the data and pass it to the runner
@@ -1285,7 +1285,7 @@ def insert_gwas_results_from_file(conn,
 # Asynchronous variants insertion
 
 async def variant_sync_run(args, data):
-  cred = config()
+  cred = config(args)
   conn = await asyncpg.connect(host=cred['host'],
                                port=cred['port'],
                                user=cred['user'],
