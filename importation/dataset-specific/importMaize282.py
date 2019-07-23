@@ -1,47 +1,161 @@
-#!/bin/python
-# This script contains most of the code executed to insert all of the Maize282 dataset into the GWAS database.
-# It uses functions from the other modules in the BaxDB code -- insert functions from insert.py, find functions from find.py, helper functions from parsinghelpers.py, classes defined in models.py, and connection/configuration functions from dbconnect.py
+#!/usr/bin/env python
+"""Hard-coded importation script for Maize282 Diverity Panel dataset.
+The goal of this is to just get the data into the database and have a better grasp on how
+to generalize importation given a strict file structure. This is a refactor of Molly Wohl's
+original insertMaize282.py script.
 
-import pandas as pd
-import numpy as np
-import psycopg2
+The MLMM GWAS Pipeline (by Greg Ziegler) is the source for the majority of information.
+
+GitHub: https://github.com/gziegler/runBatchMLMM.BellwetherGBMaize
+
+There are two listed repos for this because it appears that the first, primary one was
+removed.
+
+Importation happens in five stages:
+    Experiment Design          Pipeline Design
+            |                         |
+            |                         |
+            V                         V
+  Experiment Collection       Pipeline Collection
+                   \             /
+                    \           /
+                     \         /
+                      V       V
+                       Results
+  
+  Although the experiment and pipeline pathways are not dependent on one another, they must
+  both done before importing *any* GWAS results.
+
+Curated Values & Files:
+  The following values must be known. The listed files are the best guesses. Any value marked with ⚠ is not yet confirmed. 
+    * Species shortname: maize
+    * Species binomial name: Zea mays
+    * Species subspecies: None
+    * Species variety: None
+    * Population name: Maize282
+    * Number of chromosomes: 10
+    * Lines filename (.indv): <chromosome>_282_agpv4.012
+    * Genotype version assembly name: B73 RefGen_v4
+    * Genotype version annotation name: AGPv4
+    * Reference genome line name (line name): 282set_B73
+    * Phenotype filename(s): 5.mergedWeightNorm.LM.rankAvg.longFormat.csv
+    * GWAS algorithm name: MLMM
+    * Imputation method name: impute to major allele
+    * Kinship algortihm name: van raden
+    * Population structure algorithm name: Eigenstrat
+    * Genotype filename(s) (.012): <chromosome>_282_agpv4.012
+    * Variants filenames (.012.pos): <chromosome>_282_agpv4.012.pos
+    * Kinship filename (.csv): 4.AstleBalding.synbreed.kinship.csv
+    * Population structure filename (.csv): 4.Eigenstrat.population.structure.10PCs.csv
+    * GWAS run filename (.csv): 9.mlmmResults.csv
+    * GWAS results filename (.csv): 9.mlmmResults.csv
+    * Missing SNP cutoff value: 0.2
+    * Missing line cutoff value: 0.2
+    * Minor allele frequency cutoff value: 0.1
+
+  Required values & files categorized by stage:
+    Experiment Design:
+      * Species shortname
+      * Species binomial name
+      * Species subspecies
+      * Species variety
+      * Population name
+      * Number of chromosomes
+      * Lines filename (.indv) 
+      * Genotype version assembly name
+      * Genotype version annotation name 
+      * Reference genome line name (line name)
+      * Phenotype filename(s) (.ph.csv)*
+    Pipeline Design:
+      * GWAS algorithm name
+      * Imputation method name
+      * Kinship algortihm name
+      * Population structure algorithm name
+    Experiment Collection:
+      * Genotype filename(s) (.012)
+      * Variants filenames (.012.pos)
+      * Phenotype filename(s)
+    Pipeline Collection:
+      * Kinship filename (.csv)
+      * Population structure filename (.csv)
+    Results:
+      * GWAS run filename (.csv)
+      * GWAS results filename (.csv)
+      * Missing SNP cutoff value
+      * Missing line cutoff value
+      * Minor allele frequency cutoff value
+
+Todo:
+  * Move the lines to a separate, *single* file because right now there are duplicates 
+    of each said file for *each* chromosome.
+  * Split the phenotypes/traits into individual files with `.ph` file extension
+  * Change genotype_version table so that fields reflect the change in the database
+    This change will happen in the `importation.util.insert` module 
+
+Additional Info:
+  During the initial runs to import the data into a local database, these were the average
+  execution times
+
+  Species: < 1 sec
+  Population: < 1 sec
+  Lines:
+  Genotype Version: < 1 sec
+  Phenotypes: 
+  Genotypes: 
+  Variants: 
+  Results:
+
+  Estimated total time: 
+
+"""
+import argparse
+import configparser
 import csv
-import insert
-import find
-from dbconnect import config, connect
-from models import species, population, line, chromosome, variant, genotype, trait, phenotype, growout_type, growout, location, gwas_algorithm, genotype_version, imputation_method, kinship_algorithm, kinship, population_structure_algorithm, population_structure, gwas_run, gwas_result
+import errno
+import os
+import sys
+from pprint import pprint
+from random import randint
+from string import Template
 
+import numpy as np
+import pandas as pd
+import psycopg2
 
-if __name__ == '__main__':
-  conn = connect()
+from importation.util import find, insert
+from importation.util.dbconnect import connect
+from importation.util.models import (chromosome, genotype, genotype_version,
+                                     growout, growout_type, gwas_algorithm,
+                                     gwas_result, gwas_run, imputation_method,
+                                     kinship, kinship_algorithm, line,
+                                     location, phenotype, population,
+                                     population_structure,
+                                     population_structure_algorithm, species,
+                                     trait, variant)
 
-  # ADD HARD-CODED VALUES FOR INDEPENDENT TABLES/OBJECTS
+def process(args):
+  try:
+    conn = connect()
+  except:
+    raise
 
-  # ADD LOCATIONS
-  locations = []
-  locations.append(location("United States", "Indiana", "West Lafayette", "PU"))
-  locations.append(location("United States", "New York", None, "NY"))
-  locations.append(location("United States", "Florida", None, "FL"))
-  locations.append(location("United States", "Puerto Rico", None, "PR"))
-  locations.append(location("United States", "North Carolina", None, "NC"))
-  locations.append(location("South Africa", None, None, "SA"))
-  locations.append(location("United States", "Missouri", None, "MO"))
-  for place in locations:
-    insert.insert_location(conn, place)
-  # LOOK UP ID OF A HARD-CODED LOCATION USING find_chromosome()
-  PUlocID = find.find_location(conn, 'PU')
-  NYlocID = find.find_location(conn, "NY")
-  FLlocID = find.find_location(conn, "FL")
-  PRlocID = find.find_location(conn, "PR")
-  NClocID = find.find_location(conn, "NC")
-  SAlocID = find.find_location(conn, "SA")
-  MOlocID = find.find_location(conn, "MO")
+  # Species
+  species_shortname = 'maize' # setaria
+  species_binomial = 'Zea mays' # Setaria italica OR Setaria viridis  ???
+  species_subspecies = None
+  species_variety = None
+  # Population
+  population_name = 'Maize282'
+  # Chromosome
+  chromosome_count = 10
+  # Line
+  lines_filename = Template('${cwd}/${chr}_${shortname}.012.indv')
+  # Genotype Version
+  genotype_version_assembly_name = 'B73 RefGen_v4'
+  genotype_version_annotation_name = 'AGPv4' # NOTE(tparker): Not sure where to find this info or who names it
+  reference_genome_line_name = 'REF_REF_REF_REF' # Placeholder
 
-  # ADD A HARD-CODED SPECIES TO DB USING insert_species()
-  soybeanSpecies = species('soybean', 'Glycine max', None, None)
-  insertedSpeciesID = insert.insert_species(conn, soybeanSpecies)
-  print("[ INSERT ]\t(%s)\t%s" % (insertedSpeciesID, str(soybeanSpecies)))
-  mySpecies = species('maize', 'Zea mays', None, None)
+  s = species(species_shortname, species_binomial, species_subspecies, species_variety)
   insertedSpeciesID = insert.insert_species(conn, mySpecies)
   print("[ INSERT ]\t(%s)\t%s" % (insertedSpeciesID, str(mySpecies)))
   maizeSpeciesID = find.find_species(conn, 'maize')
@@ -51,7 +165,6 @@ if __name__ == '__main__':
   myPopulation = population('Maize282', maizeSpeciesID)
   insertedPopulationID = insert.insert_population(conn, myPopulation)
   print("[ INSERT ]\t(%s)\t%s" % (insertedPopulationID, str(myPopulation)))
-  maize282popID = find.find_population(conn, 'Maize282')
   print("[ FIND ]\t(%s)\t%s" % (maize282popID, '< population: Maize282 >'))
 
   # ADD A HARD-CODED LINE TO DB USING insert_line()
@@ -70,7 +183,6 @@ if __name__ == '__main__':
   # ADD ALL CHROMOSOMES FOR A SPECIES TO DB
   insertedChromosomeIDs = insert.insert_all_chromosomes_for_species(conn, 10, maizeSpeciesID)
   print("[ INSERT ]\t%s\t%s" % (insertedChromosomeIDs, '\t10 (sID: %s)' % maizeSpeciesID))
-
   
   # GET LINES FROM SPECIFIED 012.indv FILE AND ADD TO DB
   insertedLineIDs = insert.insert_lines_from_file(conn, '../data/chr10_282_agpv4.012.indv', maize282popID)
@@ -91,14 +203,25 @@ if __name__ == '__main__':
     # print(len(insertedVariantIDs))
 
   # ADD ALL GENOTYPES FROM A ONE-CHROMOSOME .012 FILE TO DB
-  # FIX(timp): Like the variants, Molly had inserted all of the genotypes for every indv file.
-  # NOTE(timp): For when this is generalized to more than just Zea mays, there need to be a 
-  # variable for the range instead because the number of chromosomes may differ between species
   for c in range(1, 11):
     chrShortname = 'chr' + str(c)
     chrId = find.find_chromosome(conn, chrShortname, maizeSpeciesID)
     genoFilename = '../data/%s_282_agpv4.012' % chrShortname
     linesFilename = '../data/%s_282_agpv4.012.indv' % chrShortname
+    # Example input file: chr1_282_agpv4.012.indv
+    # 282set_33-16
+    # 282set_38-11Goodman-Buckler
+    # 282set_4226
+    # 282set_4722
+    # 282set_A188
+    # 282set_A214NGoodman-Buckler
+    # 282set_A239
+    # 282set_A441-5
+    # 282set_A554
+    # ...
+    # This is a list of all the lines that have been genotyped
+    # AFAIK, this is 1:1 for the rows of each file, so row 1 of .indv contains the line of row 1 in .012
+
     insertedGenotypeIDs = insert.insert_genotypes_from_file(conn, genoFilename, linesFilename, chrId, maize282popID, B73lineID)
     # print("Inserted genotype IDs:")
     # print(insertedGenotypeIDs)
@@ -114,7 +237,19 @@ if __name__ == '__main__':
   # print(insertedTraitIDs)
   
   # PARSE PHENOTYPES FROM FILE AND ADD TO DB
-  # NOTE(timp): Cannot find file
+  # Example input file: 5.mergedWeightNorm.LM.rankAvg.longFormat.csv
+  # Pedigree                      weight_FL06   weight_MO06   weight_NC06 ...
+  # 282set_33-16                  299.8285      NA            247.08025
+  # 282set_38-11Goodman-Buckler	  NA            157.62175     183.5531625
+  # 282set_4226                   NA            NA            266.214
+  # 282set_4722                   155.593625    130.501625    98.497
+  # 282set_A188                   252.62675     255.4635      213.556125
+  # 282set_A214NGoodman-Buckler	  NA            NA            202.21075
+  # 282set_A239                   NA            225.50125     217.842
+  # ...
+  # It is a line for line listing of all the traits by year
+  # This WILL be changed out for using phenotype (.ph) files instead
+
   insertedPhenoIDs = insert.insert_phenotypes_from_file(conn, '../data/5.mergedWeightNorm.LM.rankAvg.longFormat.csv', maize282popID)
   # print("num phenotypes inserted:")
   # print(len(insertedPhenoIDs))
@@ -210,6 +345,16 @@ if __name__ == '__main__':
   print(EigenstratID)
 
   # ADD NEW HARD-CODED POPULATION_STRUCTURE TO DB
+  # Example input file: 4.Eingenstrat.population.structure.10PCs.csv
+    # Line                         	      V1          	 V2	          V3 ...
+    # 282set_4226                   -0.002298602  -0.029693879   0.008527265
+    # 282set_4722                   -0.003785163	-0.083527265	-0.059586105
+    # 282set_33-16                   0.000222197	-0.035755785   0.017007817
+    # 282set_38-11Goodman-Buckler   -0.026698262	-0.053115302	-0.01159794
+    # 282set_A188                    0.002520617	-0.041387288	-0.011656126
+    # 282set_A239                   -0.024217977	-0.038008255   0.033222018
+    # ...
+    # The number of columns is one more than the number of PCs in filename
   newPopulationStructure = population_structure(EigenstratID, "../data/4.Eigenstrat.population.structure.10PCs.csv")
   newPopulationStructureID = insert.insert_population_structure(conn, newPopulationStructure)
   print("New population structure ID:")
@@ -274,3 +419,64 @@ if __name__ == '__main__':
                                                               0.1)
   print("Inserted gwas result IDs: ")
   print(insertedGwasResultIDs)
+
+def parseOptions():
+  """
+  Function to parse user-provided options from terminal
+  """
+  description="""Importation script specificaly for Setaria dataset.
+  
+  Importation happens in five stages:
+    Experiment Design          Pipeline Design
+            |                         |
+            |                         |
+            V                         V
+  Experiment Collection       Pipeline Collection
+                   \             /
+                    \           /
+                     \         /
+                      V       V
+                       Results
+
+  Example configuration file:
+    # configuration.json
+    {
+      "species": {
+        "shortname": "setaria",
+        "binomial name": "Setaria Dkss"
+      },
+      "population": "wg393",
+      "growout": [
+        {
+          "name": "PH18",
+          "year": "2018",
+          "type": "phenotyper",
+          "location": {
+            "code": "PH18"
+          }
+        }
+      ]
+    }
+    
+    """
+  parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
+  parser.add_argument("--verbose", action="store_true", help="Increase output verbosity")
+  parser.add_argument("--debug", action="store_true", help="Enables --verbose and disables writes to disk")
+  parser.add_argument("-v", "--version", action="version", version='%(prog)s 1.0-alpha')
+  parser.add_argument("-f", "--filename", action="store", help="Specify a configuration file. See documentation for expected format.")
+  parser.add_argument("--log", action="store_true", help="Enabled logging. Filename is appended to %(prog)s.log")
+  parser.add_argument("working_directory", action="store", metavar="WORKING_DIRECTORY", default=".", help="Working directory. Must contains all required files.")
+  print(f'{os.path.basename(__file__)}') # this was just a quick test to see how to get the filename of the script. I don't know why I needed it.
+  args = parser.parse_args()
+  if args.debug is True:
+    args.verbose = True
+    args.write = False
+
+  if args.debug:
+    pprint(args)
+  
+  return args
+
+if __name__ == "__main__":
+  args = parseOptions()
+  process(args)

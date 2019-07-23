@@ -1,6 +1,10 @@
-import pandas as pd
 import csv
-import find
+import logging
+
+import pandas as pd
+
+import importation.util.find as find
+
 
 def generate_chromosome_list(numChromosomes):
   """Generates list of chromosomes from numeric list of chromsomes
@@ -51,7 +55,7 @@ def parse_lines_from_file(lineFile):
       linelist.append(linename)
   return linelist
 
-def convert_linelist_to_lineIDlist(conn, linelist, populationID):
+def convert_linelist_to_lineIDlist(conn, args, linelist, populationID):
   """Converts list of named lines to list of line IDs
 
   :param linelist:
@@ -64,7 +68,7 @@ def convert_linelist_to_lineIDlist(conn, linelist, populationID):
   """
   lineIDlist = []
   for linename in linelist:
-    lineID = find.find_line(conn, linename, populationID)
+    lineID = find.find_line(conn, args, linename, populationID)
     lineIDlist.append(lineID)
   return lineIDlist
 
@@ -141,7 +145,16 @@ def parse_unique_runs_from_gwas_results_file(filepath):
   df = pd.read_csv(filepath)
   for index, row in df.iterrows():
     # Ignore duplicate entries based on trait, number of SNPs, and number of lines.
-    gwas_run = [row['trait'],row['nSNPs'],row['nLines']]
+    
+    # NOTE(tparker): Because the nSNPs & nLines are not required fields for a GWAS run/result
+    #                This code is to deal with attempting to extract values that do not exist
+    #                in the results/run file (.csv)
+    keys_of_interest = [ 'trait', 'nSNPs', 'nLines' ]
+    gwas_run = dict.fromkeys(keys_of_interest)
+    for k in keys_of_interest:
+      if k in df.columns:
+        gwas_run[k] = row[k]
+    
     if gwas_run not in gwas_runs:
       gwas_runs.append(gwas_run)
   return gwas_runs

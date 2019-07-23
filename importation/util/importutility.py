@@ -1,15 +1,24 @@
 #!/usr/bin/env python
 """Utility methods for import.py"""
-from dbconnect import connect
-import find
-from datetime import datetime as dt
-import pandas as pd
-import numpy as np
-import psycopg2
 import csv
-import insert
-from dbconnect import config, connect
-from models import species, population, line, chromosome, variant, genotype, trait, phenotype, growout_type, growout, location, gwas_algorithm, genotype_version, imputation_method, kinship_algorithm, kinship, population_structure_algorithm, population_structure, gwas_run, gwas_result
+from datetime import datetime as dt
+
+import numpy as np
+import pandas as pd
+import psycopg2
+
+import importation.util.find as find
+import importation.util.insert
+import importation.util.validate as validate
+from importation.util.dbconnect import config, connect
+from importation.util.models import (chromosome, genotype, genotype_version,
+                                     growout, growout_type, gwas_algorithm,
+                                     gwas_result, gwas_run, imputation_method,
+                                     kinship, kinship_algorithm, line,
+                                     location, phenotype, population,
+                                     population_structure,
+                                     population_structure_algorithm, species,
+                                     trait, variant)
 
 
 def growout_name_to_year(value):
@@ -33,7 +42,7 @@ def growout_name_to_year(value):
   except:
     return None
 
-def create_location(code):
+def create_location(code, args):
   """Creates a location object from user-input
   
   :param code: unique name for location
@@ -53,11 +62,11 @@ def create_location(code):
 
   # The code is finally defined, so we need to validate if the code can be
   # used.
-  conn = connect()
+  conn = connect(args)
   # Was it already claimed? If so, does it match... If it matches, great! Don't create it.
   validate.location_exists(conn, location)
 
-  location_id = find.find_location(conn, location["code"])
+  location_id = find.find_location(conn, args, location["code"])
   # Location by code not in database, create a new one
   if location_id is None:
     pass  
