@@ -109,3 +109,11 @@ venv.bak/
 .vscode/tasks.json
 .vscode/launch.json
 .vscode/extensions.json
+
+# Generated files
+config.json
+
+# Data
+*/data/*
+data/*
+data/
