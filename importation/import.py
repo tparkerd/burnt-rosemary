@@ -210,19 +210,19 @@ def process(args):
 
     for c in range(1, dp['number_of_chromosomes'] + 1):
       chr_shortname = 'chr' + str(c)
-      lines_filepath = lines_filename.substitute(dict(cwd=args.working_directory, shortname=dp['species_shortname'], chr=chr_shortname))
-      genotype_filepath = genotype_filename.substitute(dict(cwd=args.working_directory, shortname=dp['species_shortname'], chr=chr_shortname))
-      variants_filepath = variants_filename.substitute(dict(cwd=args.working_directory, shortname=dp['species_shortname'], chr=chr_shortname))
+      lines_filepath = lines_filename.substitute(dict(cwd=args.wd, shortname=dp['species_shortname'], chr=chr_shortname))
+      genotype_filepath = genotype_filename.substitute(dict(cwd=args.wd, shortname=dp['species_shortname'], chr=chr_shortname))
+      variants_filepath = variants_filename.substitute(dict(cwd=args.wd, shortname=dp['species_shortname'], chr=chr_shortname))
 
-      locations.append(dict(cwd=args.working_directory, filetype='line', filename=lines_filepath))
-      locations.append(dict(cwd=args.working_directory, filetype='genotype', filename=genotype_filepath))
-      locations.append(dict(cwd=args.working_directory, filetype='variant', filename=variants_filepath))
+      locations.append(dict(cwd=args.wd, filetype='line', filename=lines_filepath))
+      locations.append(dict(cwd=args.wd, filetype='genotype', filename=genotype_filepath))
+      locations.append(dict(cwd=args.wd, filetype='variant', filename=variants_filepath))
 
     # Go through all the single files that are not named based off of a chromsome
     # Construct the file descriptor dictionaries, and then loop through and test each file's existance
     # phenotype_filename = Template('${cwd}/${growout}.ph.csv') # Welp, this is another instance of pheno file issue
-    locations.append(dict(cwd=args.working_directory, filetype='kinship', filename=dp['kinship_filename']))
-    locations.append(dict(cwd=args.working_directory, filetype='population_structure', filename=dp['population_structure_filename']))
+    locations.append(dict(cwd=args.wd, filetype='kinship', filename=dp['kinship_filename']))
+    locations.append(dict(cwd=args.wd, filetype='population_structure', filename=dp['population_structure_filename']))
 
     # Since there can be more than one file for the phenotypes, results, and run
     # For each array in the configuration file, add it to the list of paths to 
@@ -231,12 +231,12 @@ def process(args):
     for configuration_entry in dp:
       if isinstance(dp[configuration_entry], list):
         for filename in dp[configuration_entry]:
-          locations.append(dict(cwd=args.working_directory, filetype=configuration_entry, filename=filename))
+          locations.append(dict(cwd=args.wd, filetype=configuration_entry, filename=filename))
       else:
         # For any of the entries that CAN be a list, add their single values to
         # the file list
         if configuration_entry in [ 'phenotype_filename', 'gwas_run_filename', 'gwas_results_filename' ]:
-          locations.append(dict(cwd=args.working_directory, filetype=configuration_entry, filename=dp[configuration_entry]))
+          locations.append(dict(cwd=args.wd, filetype=configuration_entry, filename=dp[configuration_entry]))
 
     logging.debug("File locations\n======================")
     logging.debug(pformat(locations))
@@ -323,9 +323,9 @@ def process(args):
   # Traits
   # Allow for more than on phenotype files
   if isinstance(dp["phenotype_filename"], list):
-    phenotype_filenames = [ f'{args.working_directory}/{filename}' for filename in dp['phenotype_filename'] ]
+    phenotype_filenames = [ f'{args.wd}/{filename}' for filename in dp['phenotype_filename'] ]
   else:
-    phenotype_filenames = [ f'{args.working_directory}/{dp["phenotype_filename"]}']
+    phenotype_filenames = [ f'{args.wd}/{dp["phenotype_filename"]}']
 
   # Model Construction & Insertion
   # Species
@@ -340,7 +340,7 @@ def process(args):
   chromosome_ids = insert.insert_all_chromosomes_for_species(conn, args, chromosome_count, species_id)
   logging.debug(f'[Insert]\tChromosome IDs\t{chromosome_ids}')
   # Line
-  working_filepath = lines_filename.substitute(dict(chr="chr1", cwd=f"{args.working_directory}", shortname=species_shortname))
+  working_filepath = lines_filename.substitute(dict(chr="chr1", cwd=f"{args.wd}", shortname=species_shortname))
   try:
     if not os.path.isfile(working_filepath):
       raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), working_filepath)
@@ -445,8 +445,8 @@ def process(args):
   for c in range(1, chromosome_count + 1):
     chromosome_shortname = 'chr' + str(c)
     chromosome_id = find.find_chromosome(conn, args, chromosome_shortname, species_id)
-    geno_filename = genotype_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.working_directory}', shortname=species_shortname))
-    line_filename = lines_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.working_directory}', shortname=species_shortname))
+    geno_filename = genotype_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.wd}', shortname=species_shortname))
+    line_filename = lines_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.wd}', shortname=species_shortname))
     try:
       if not os.path.isfile(geno_filename):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), geno_filename)
@@ -466,7 +466,7 @@ def process(args):
   for c in range(1, chromosome_count + 1):
     chromosome_shortname = 'chr' + str(c)
     chromosome_id = find.find_chromosome(conn, args, chromosome_shortname, species_id)
-    variant_filename = variants_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.working_directory}', shortname=species_shortname))
+    variant_filename = variants_filename.substitute(dict(chr=chromosome_shortname, cwd=f'{args.wd}', shortname=species_shortname))
     try:
       if not os.path.isfile(variant_filename):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), variant_filename)
@@ -505,11 +505,11 @@ def process(args):
   #                I would like to find out why this is the case and if 
   #                it would just be better to store it in the database and
   #                allow the user to export the table themselves as a CSV.
-  kinship_filepath = f'{args.working_directory}/{dp["kinship_filename"]}'
+  kinship_filepath = f'{args.wd}/{dp["kinship_filename"]}'
   # Population Structure
   # NOTE(tparker): Same reasoning as the kinship file. There should be a way 
   #                for the data to be stored in the database, not a 
-  population_structure_filepath = f'{args.working_directory}/{dp["population_structure_filename"]}'
+  population_structure_filepath = f'{args.wd}/{dp["population_structure_filename"]}'
 
   # Model Construction & Insertion
   # Kinship
@@ -536,9 +536,9 @@ def process(args):
   # Expected User Input
   # GWAS Run & results
   if isinstance(dp['gwas_results_filename'], list):
-    gwas_filenames = [ f'{args.working_directory}/{filename}' for filename in dp['gwas_results_filename'] ] # allows for more than one gwas results/run file
+    gwas_filenames = [ f'{args.wd}/{filename}' for filename in dp['gwas_results_filename'] ] # allows for more than one gwas results/run file
   else:
-    gwas_filenames = [ f'{args.working_directory}/{dp["gwas_results_filename"]}' ]
+    gwas_filenames = [ f'{args.wd}/{dp["gwas_results_filename"]}' ]
   # The following values (0.2, 0.2, and 0.1) were all taken from the Maize282 import
   # NOTE(tparker): Make sure to double check with Greg on what the true values should be
   #                Also, double check the source of the pipeline to see if there is any
@@ -592,9 +592,9 @@ def parseOptions():
   parser.add_argument("--verbose", action="store_true", help="Increase output verbosity")
   parser.add_argument("--debug", action="store_true", help="Enables --verbose and disables writes to disk")
   parser.add_argument("-v", "--version", action="version", version='%(prog)s 1.0-alpha')
-  parser.add_argument("-f", "--filename", action="store", help="Specify a configuration file. See documentation for expected format.")
+  parser.add_argument("-f", "--filename", action="store", default=None, help="Specify a configuration file. See documentation for expected format.")
   parser.add_argument("--log", action="store_true", help="Enabled logging. Filename is appended to %(prog)s.log")
-  parser.add_argument("working_directory", action="store", metavar="WORKING_DIRECTORY", default=".", help="Working directory. Must contains all required files.")
+  parser.add_argument("-wd", action="store", dest="wd", metavar="WORKING DIRECTORY", default=None, help="Working directory. Must contains all required files.")
   parser.add_argument("--skip-genotype-validation", action="store_true", help="Errors in .012 files are infrequent, so enable this option to assume valid input.")
   parser.add_argument("--env", action="store", default=".env.qa", help="Environment file (Default: .env.qa)")
   parser.add_argument("--reset-qa", dest="reset_qa", action="store_true", help="Empty the QA database using")
@@ -614,9 +614,17 @@ def parseOptions():
   logging_format = '%(asctime)s - %(levelname)s - %(filename)s %(lineno)d - %(message)s'
   logging.basicConfig(format=logging_format, level=logging_level)
   
+  if args.wd is None:
+    if args.filename is not None:
+      args.wd = os.path.dirname(args.filename)
+    else:
+      args.wd = os.getcwd()
+
   try:
-    if not os.path.exists(os.path.join(args.working_directory, args.env)):
-      raise FileNotFoundError(f"Environment file not found. File missing: {args.env}")
+    environment_ifp = os.path.join(os.getcwd(), args.env)
+
+    if not os.path.exists(environment_ifp):
+      raise FileNotFoundError(f"Environment file not found. File missing: {environment_ifp}")
   except:
     raise
 

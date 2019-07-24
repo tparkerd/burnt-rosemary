@@ -38,7 +38,6 @@ def truncate(args):
     imputation_method
   
   """
-
   def exec(conn, args, stmt):
     """Remove all entries in a table with truncation
 
