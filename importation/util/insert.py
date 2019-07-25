@@ -1232,10 +1232,14 @@ def insert_gwas_results_from_file(conn,
     chromosome = row['chr']
     chromosome = "chr"+str(chromosome)
     chromosomeID = find.find_chromosome(conn, args, chromosome, speciesID)
+    
+    # Set Position
     if 'bp' in df.columns:
       basepair = row['bp']
     elif 'basepair' in df.columns:
       basepair = row['basepair']
+    elif 'pos' in df.columns:
+      basepair = row['pos']
     else:
       raise Exception(f'Cannot identify basepair column in GWAS result file: {gwas_results_file}')
     
