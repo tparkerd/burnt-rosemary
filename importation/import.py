@@ -108,7 +108,6 @@ from importation.util.validate import (validate_genotype, validate_kinship,
                                        validate_results, validate_runs,
                                        validate_variant)
 
-
 def process(args):
   """Imports hardcoded values for Setaria database. Many items are placeholder values."""
   # =======================================
