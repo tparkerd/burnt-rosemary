@@ -1,16 +1,10 @@
 #!/usr/bin/env python
-"""Hard-coded importation script for - dataset.
-***This is effectively a template for hardcoding a dataset***
-
-NOTICE: This file is currently being drafted to be a generic (whole) data import.
-        This will *not* work for a partial dataset.
+"""General importation case for genotypic data into PGWAS database
 
 The goal of this is to just get the data into the database and have a better grasp on how
 to generalize importation given a strict file structure.
 
 The - GWAS Pipeline (by Greg Ziegler) is the source for the majority of information.
-
-GitHub: -
 
 Importation happens in five stages:
     Experiment Design          Pipeline Design
@@ -124,7 +118,6 @@ def process(args):
     conn = connect(args)
   except:
     raise
-
 
   # Input file preprocessing and validation
   try:
